@@ -1,2 +1,3 @@
 music_finder_backend
 __pycache__
+.env
