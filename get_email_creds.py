@@ -27,15 +27,12 @@ def get_email_creds():
   if not creds or not creds.valid:
     if creds and creds.expired and creds.refresh_token:
       creds.refresh(Request())
-      print("Refreshed")
 
       # Update environment variables differently depending on where this code is running
       if (os.environ.get("ENVIRONMENT") == "Localhost"):
-        print("On Localhost")
         dotenv.set_key(dotenv_file, "GOOGLE_ACCESS_TOKEN", creds.token)
         dotenv.set_key(dotenv_file, "GOOGLE_EXPIRY", creds.expiry.strftime("%Y-%m-%dT%H:%M:%S.%fZ"))
       elif (os.environ.get("ENVIRONMENT") == "Heroku"):
-        print("Online")
         client = heroku3.from_key(os.environ.get("HEROKU_API_KEY"))
         app = client.apps()["music-finder-backend"]
         app.update_config({
