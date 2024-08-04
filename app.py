@@ -3,11 +3,12 @@ from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import time
-from date_ranges import get_date_range
-from max_distance import get_max_distance_meters
+from scripts.date_ranges import get_date_range
+from scripts.max_distance import get_max_distance_meters
 import random
 import string
 import os
+from scripts.send_emails import send_event_email
 
 # Create important server stuff
 app = Flask(__name__)
@@ -19,15 +20,10 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 CORS(app)
 
-# Import Internal Modules
-from event import Event
-# from send_event_email import send_event_email
-
+# Must be imported after to avoid circular import
+from scripts.event import Event
 
 # Create an event
-# Conditions:
-#    - event_date must be a String in the format "2024-01-01" or "2020-11-24".
-#    - start_time/end_time must be a String in the format "06:30" or "19:00". 
 @app.route('/events', methods = ['POST'])
 def create_event():
   venue_name = request.json['venue_name']
@@ -67,7 +63,7 @@ def create_event():
   db.session.add(event)
   db.session.commit()
   # Send email confirming event confirmation and giving Event ID
-  # send_event_email(event)
+  send_event_email(event)
   return {'event': event.get_metadata()}
 
 @app.route('/events', methods= ['GET'])
