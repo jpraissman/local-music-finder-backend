@@ -24,7 +24,7 @@ executor = Executor(app)
 
 # Must be imported after to avoid circular import
 from scripts.event import Event
-
+from scripts.user import User
 
 # Background events to run after an event is created.
 def create_event_background(event):

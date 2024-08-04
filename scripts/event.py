@@ -6,6 +6,7 @@ import os
 API_KEY = os.environ.get('API_KEY')
 
 class Event(db.Model):
+  __tablename__ = 'event'
   id = db.Column(db.Integer, primary_key=True)
   created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
   venue_name = db.Column(db.String(50), nullable=False)
