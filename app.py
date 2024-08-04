@@ -1,4 +1,3 @@
-# Import External Modules
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -8,7 +7,9 @@ from scripts.max_distance import get_max_distance_meters
 import random
 import string
 import os
-from scripts.send_emails import send_event_email
+import scripts.send_emails as EmailSender
+from flask_executor import Executor
+import time
 
 # Create important server stuff
 app = Flask(__name__)
@@ -19,13 +20,31 @@ app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 CORS(app)
+executor = Executor(app)
 
 # Must be imported after to avoid circular import
 from scripts.event import Event
 
-# Create an event
+
+# Background events to run after an event is created.
+def create_event_background(event):
+  print("Starting email sends")
+  # Send email confirming event confirmation and giving Event ID
+  EmailSender.send_event_email(event)
+
+  # Get any events with the same date and address. If there are potential duplicates, send an email
+  events = Event.query.filter(Event.event_date == event.event_date,
+                              Event.address_id == event.address_id).all()
+  print(len(events))
+  if (len(events) > 1):
+    EmailSender.send_duplicate_event_email(events)
+
+  print("Finished background stuff")
+
+# Create an Event
 @app.route('/events', methods = ['POST'])
 def create_event():
+  # Get all variables from body of request
   venue_name = request.json['venue_name']
   band_name = request.json['band_name']
   band_type = request.json['band_type']
@@ -57,13 +76,16 @@ def create_event():
     except:
       unique_id_found = True
 
+  # Create Event object and commit to the database
   event = Event(venue_name, band_name, band_type, tribute_band_name, genres, event_date, start_time, 
                 end_time, address_id, cover_charge, other_info, facebook_handle, instagram_handle, 
                 website, band_or_venue, phone_number, address_description, new_event_id, email_address)
   db.session.add(event)
   db.session.commit()
-  # Send email confirming event confirmation and giving Event ID
-  send_event_email(event)
+
+  # Run the background tasks of the event creation (duplicate checking and email confirmation)
+  executor.submit(create_event_background, event)
+  
   return {'event': event.get_metadata()}
 
 @app.route('/events', methods= ['GET'])
