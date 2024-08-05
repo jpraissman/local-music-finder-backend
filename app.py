@@ -172,6 +172,27 @@ def update_event(event_id):
   db.session.commit()
   return f'Event (id: {event_id}) updated!'
 
+
+# Create a User that gets weekly event notifications
+@app.route('/users', methods = ['POST'])
+def create_user():
+  # Get all variables from body of request
+  email_address = request.json['email_address']
+  address_id = request.json['address_id']
+  max_distance = request.json['max_distance']
+  genres = request.json['genres']
+  band_types = request.json['band_types']
+
+  # Convert max_distance into meters
+  max_distance = get_max_distance_meters(max_distance)
+
+  # Create Event object and commit to the database
+  user = User(email_address, address_id, max_distance, genres, band_types)
+  db.session.add(user)
+  db.session.commit()
+  
+  return {'user': user.get_metadata()}, 201
+
 if __name__ == '__main__':
   app.run()
 
