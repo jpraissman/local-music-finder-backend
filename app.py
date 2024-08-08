@@ -9,7 +9,7 @@ import string
 import os
 import scripts.send_emails as EmailSender
 from flask_executor import Executor
-import time
+from datetime import datetime
 
 # Create important server stuff
 app = Flask(__name__)
@@ -84,12 +84,12 @@ def create_event():
   db.session.commit()
 
   # Run the background tasks of the event creation (duplicate checking and email confirmation)
-  executor.submit(create_event_background, event)
+  # executor.submit(create_event_background, event)
   
   return {'event': event.get_metadata()}
 
 @app.route('/events', methods= ['GET'])
-def get_events():
+def get_events_admin():
   # Get filter values
   date_range = request.args.get('date_range')
   address_id = request.args.get('address_id')
@@ -120,6 +120,40 @@ def get_events():
           if (event.distance_value <= max_distance):
             event_list.append(event.get_all_details())
             added = True
+    
+  return {'events': event_list}
+
+# Get events based on given created date/event date
+@app.route('/events-admin', methods= ['GET'])
+def get_events():
+  # Get filter values
+  event_date = request.args.get('event_date')
+  created_date = request.args.get('created_date')
+
+  # Get Event Date Info
+  if event_date == "All":
+    event_start_date = datetime.strptime("01/01/1900", "%m/%d/%Y").date()
+    event_end_date = datetime.strptime("01/01/2100", "%m/%d/%Y").date()
+  else:
+    event_start_date = datetime.strptime(event_date, "%m/%d/%Y").date()
+    event_end_date = datetime.strptime(event_date, "%m/%d/%Y").date()
+
+  # Get Created Date Info
+  if created_date == "All":
+    created_start_date = datetime.strptime("01/01/1900", "%m/%d/%Y").date()
+    created_end_date = datetime.strptime("01/01/2100", "%m/%d/%Y").date()
+  else:
+    created_start_date = datetime.strptime(created_date, "%m/%d/%Y").date()
+    created_end_date = datetime.strptime(created_date, "%m/%d/%Y").date()
+
+  # Get events that meet the filter requirements
+  events = Event.query.filter(Event.event_date >= event_start_date,
+                              Event.event_date <= event_end_date,
+                              Event.created_at_date >= created_start_date,
+                              Event.created_at_date <= created_end_date).all()
+  event_list = []
+  for event in events:
+    event_list.append(event.get_all_details())
     
   return {'events': event_list}
 
@@ -182,16 +216,49 @@ def create_user():
   max_distance = request.json['max_distance']
   genres = request.json['genres']
   band_types = request.json['band_types']
+  address_description = request.json['address_description']
 
   # Convert max_distance into meters
-  max_distance = get_max_distance_meters(max_distance)
+  max_distance_value = get_max_distance_meters(max_distance)
 
   # Create Event object and commit to the database
-  user = User(email_address, address_id, max_distance, genres, band_types)
+  user = User(email_address, address_id, max_distance, genres, band_types, address_description,
+              max_distance_value)
   db.session.add(user)
   db.session.commit()
   
-  return {'user': user.get_metadata()}, 201
+  return {"user: ": "User Created"}, 201
+
+# # Send weekly event notifications to subscribed Users
+# @app.route('/send-emails', methods = ['POST'])
+# def send_weekly_emails():
+#   # Get all variables from body of request
+#   api_key = request.json['api_key']
+
+#   users = User.query.filter(User.subscribed).all()
+
+#   for user in users:
+#     # Get Date Range
+#     start_date, end_date = get_date_range("All Future Dates")
+
+#     # Get events that meet the filter requirements
+#     events = Event.query.filter(Event.band_type.in_(user.band_types),
+#                                 Event.event_date >= start_date,
+#                                 Event.event_date <= end_date).all()
+#     matched_events = []
+#     for event in events:
+#       added = False
+#       for genre in user.genres:
+#         if not added and genre in event.genres:
+#             # Need Error Handling here, in case response was bad
+#             event.set_distance_data(user.address_id)
+#             if (event.distance_value <= user.max_distance_value):
+#               matched_events.append(event)
+#               added = True
+
+#     EmailSender.send_weekly_event_notification(user, matched_events)
+
+#   return {"email-status: ": "Emails Sent"}, 201
 
 if __name__ == '__main__':
   app.run()

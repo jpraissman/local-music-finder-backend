@@ -2,13 +2,14 @@ from app import db
 from datetime import datetime
 import requests
 import os
+import pytz
 
 API_KEY = os.environ.get('API_KEY')
 
 class Event(db.Model):
   __tablename__ = 'event'
   id = db.Column(db.Integer, primary_key=True)
-  created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+  created_at = db.Column(db.DateTime, nullable=False)
   venue_name = db.Column(db.String(50), nullable=False)
   band_name = db.Column(db.String(50), nullable=False)
   band_type = db.Column(db.String, nullable=False)
@@ -28,6 +29,7 @@ class Event(db.Model):
   address_description = db.Column(db.String, nullable=False)
   event_id = db.Column(db.String, nullable=False)
   email_address = db.Column(db.String, nullable=False)
+  created_at_date = db.Column(db.Date, nullable=False)
   
   def __init__(self, venue_name, band_name, band_type, tribute_band_name, genres, event_date, 
                start_time, end_time, address_id, cover_charge, other_info, facebook_handle,
@@ -52,6 +54,8 @@ class Event(db.Model):
     self.address_description = address_description
     self.event_id = event_id
     self.email_address = email_address
+    self.created_at = datetime.now(pytz.timezone("US/Eastern"))
+    self.created_at_date = datetime.now(pytz.timezone("US/Eastern")).date()
 
   def set_distance_data(self, origin_place_id):
     url = f'https://maps.googleapis.com/maps/api/distancematrix/json?origins=place_id:{origin_place_id}&destinations=place_id:{self.address_id}&units=imperial&key={API_KEY}'
@@ -79,6 +83,11 @@ class Event(db.Model):
     
 
   def get_all_details(self):
+    # Create event_datetime_str
+    event_date_str = self.event_date.strftime("%Y-%m-%d")
+    event_time_str = self.start_time.strftime("%H:%M:%S")
+    event_datetime_str = datetime.strptime(f'{event_date_str} {event_time_str}', 
+                                           "%Y-%m-%d %H:%M:%S").isoformat()
     return {
       "id": self.id,
       "venue_name": self.venue_name,
@@ -105,6 +114,9 @@ class Event(db.Model):
       "address_id": self.address_id,
       "event_id": self.event_id,
       "email_address": self.email_address,
+      "created_date_formatted": self.created_at.strftime("%B %d, %Y at %#I:%M %p"),
+      "created_datetime": self.created_at.isoformat(),
+      "event_datetime": event_datetime_str,
     }
   
   def get_metadata(self):
