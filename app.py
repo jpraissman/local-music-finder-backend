@@ -10,6 +10,7 @@ import os
 import scripts.send_emails as EmailSender
 from flask_executor import Executor
 from datetime import datetime
+import pytz
 
 # Create important server stuff
 app = Flask(__name__)
@@ -140,17 +141,17 @@ def get_events():
 
   # Get Created Date Info
   if created_date == "All":
-    created_start_date = datetime.strptime("01/01/1900", "%m/%d/%Y").date()
-    created_end_date = datetime.strptime("01/01/2100", "%m/%d/%Y").date()
+    created_start_date = datetime.strptime("01/01/1900", "%m/%d/%Y")
+    created_end_date = datetime.strptime("01/01/2100", "%m/%d/%Y")
   else:
-    created_start_date = datetime.strptime(created_date, "%m/%d/%Y").date()
-    created_end_date = datetime.strptime(created_date, "%m/%d/%Y").date()
+    created_start_date = datetime.strptime(created_date, "%m/%d/%Y")
+    created_end_date = datetime.strptime(created_date, "%m/%d/%Y")
 
   # Get events that meet the filter requirements
   events = Event.query.filter(Event.event_date >= event_start_date,
                               Event.event_date <= event_end_date,
-                              Event.created_at_date >= created_start_date,
-                              Event.created_at_date <= created_end_date).all()
+                              Event.created_date >= created_start_date,
+                              Event.created_date <= created_end_date).all()
   event_list = []
   for event in events:
     event_list.append(event.get_all_details())
