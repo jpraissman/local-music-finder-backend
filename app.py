@@ -155,8 +155,16 @@ def get_events():
   event_list = []
   for event in events:
     event_list.append(event.get_all_details())
+
+  # Determine text to display
+  if (event_date == "All" and created_date == "All"):
+    display_text = f"Showing all events occuring today or after ({len(events)} events)"
+  elif (event_date == "All"):
+    display_text = f"Showing all events created on {created_start_date.strftime("%B %d, %Y")} ({len(events)} events)"
+  else:
+    display_text = f"Showing all events occuring on {event_start_date.strftime("%B %d, %Y")} ({len(events)} events)"
     
-  return {'events': event_list}
+  return {'display_text': display_text, 'events': event_list}
 
 # get single event
 @app.route('/events/<event_id>', methods = ['GET'])
