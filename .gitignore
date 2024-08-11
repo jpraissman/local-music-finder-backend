@@ -1,3 +1,6 @@
 music_finder_backend
 __pycache__
 .env
+credentials.json
+token.json
+scripts/refresh_creds.py

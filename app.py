@@ -28,19 +28,36 @@ from scripts.event import Event
 from scripts.user import User
 
 # Background events to run after an event is created.
-def create_event_background(event):
-  print("Starting email sends")
+def create_event_background(event: Event):
+  print("Starting background events")
   # Send email confirming event confirmation and giving Event ID
-  EmailSender.send_event_email(event)
+  print("Sending Event Confirmation")
+  email_1_status = EmailSender.send_event_email(event)
+  print("Sent")
+
+  # Send email about even confirmation to admins
+  print("Sending Admin Email")
+  email_2_status = EmailSender.send_admin_event_email(event)
+  print("Sent")
 
   # Get any events with the same date and address. If there are potential duplicates, send an email
   events = Event.query.filter(Event.event_date == event.event_date,
                               Event.address_id == event.address_id).all()
-  print(len(events))
+  
+  email_3_status = True
   if (len(events) > 1):
-    EmailSender.send_duplicate_event_email(events)
+    print("Sending duplicate email")
+    email_3_status = EmailSender.send_duplicate_event_email(events)
+    print("Sent")
 
+  if (email_1_status and email_2_status and email_3_status):
+    print("Updating event")
+    Event.query.filter_by(event_id=event.event_id).update(dict(email_sent=True))
+    db.session.commit()
+    print("Updated")
+  
   print("Finished background stuff")
+  
 
 # Create an Event
 @app.route('/events', methods = ['POST'])
@@ -85,7 +102,7 @@ def create_event():
   db.session.commit()
 
   # Run the background tasks of the event creation (duplicate checking and email confirmation)
-  # executor.submit(create_event_background, event)
+  executor.submit(create_event_background, event)
   
   return {'event': event.get_metadata()}
 

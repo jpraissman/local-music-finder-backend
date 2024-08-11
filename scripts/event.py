@@ -30,6 +30,7 @@ class Event(db.Model):
   address_description = db.Column(db.String, nullable=False)
   event_id = db.Column(db.String, nullable=False)
   email_address = db.Column(db.String, nullable=False)
+  email_sent = db.Column(db.Boolean, nullable=False, default=False)
   
   def __init__(self, venue_name, band_name, band_type, tribute_band_name, genres, event_date, 
                start_time, end_time, address_id, cover_charge, other_info, facebook_handle,
