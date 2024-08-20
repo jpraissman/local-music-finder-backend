@@ -20,7 +20,7 @@ if database_url.startswith("postgres:"):
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": [os.environ.get('WEBSITE_URL')]}})
 executor = Executor(app)
 
 # Must be imported after to avoid circular import
