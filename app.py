@@ -42,7 +42,7 @@ def create_event_background(event: Event):
 
   # Get any events with the same date and address. If there are potential duplicates, send an email
   events = Event.query.filter(Event.event_date == event.event_date,
-                              Event.address_id == event.address_id).all()
+                              Event.address == event.address).all()
   
   email_3_status = True
   if (len(events) > 1):
@@ -71,7 +71,7 @@ def create_event():
   event_date = request.json['event_date']
   start_time = request.json['start_time']
   end_time = request.json['end_time']
-  address_id = request.json['address_id']
+  address = request.json['address']
   cover_charge = request.json['cover_charge']
   other_info = request.json['other_info']
   facebook_handle = request.json['facebook_handle']
@@ -79,7 +79,6 @@ def create_event():
   website = request.json['website']
   band_or_venue = request.json['band_or_venue']
   phone_number = request.json['phone_number']
-  address_description = request.json['address_description']
   email_address = request.json['email_address']
 
   # Generate random id
@@ -96,13 +95,13 @@ def create_event():
 
   # Create Event object and commit to the database
   event = Event(venue_name, band_name, band_type, tribute_band_name, genres, event_date, start_time, 
-                end_time, address_id, cover_charge, other_info, facebook_handle, instagram_handle, 
-                website, band_or_venue, phone_number, address_description, new_event_id, email_address)
+                end_time, address, cover_charge, other_info, facebook_handle, instagram_handle, 
+                website, band_or_venue, phone_number, new_event_id, email_address)
   db.session.add(event)
   db.session.commit()
 
   # Run the background tasks of the event creation (duplicate checking and email confirmation)
-  executor.submit(create_event_background, event)
+  # executor.submit(create_event_background, event)
   
   return {'event': event.get_metadata()}
 
@@ -110,7 +109,7 @@ def create_event():
 def get_events_admin():
   # Get filter values
   date_range = request.args.get('date_range')
-  address_id = request.args.get('address_id')
+  address = request.args.get('address')
   max_distance = request.args.get('max_distance')
   genres = request.args.get('genres')
   band_types = request.args.get('band_types')
@@ -118,9 +117,9 @@ def get_events_admin():
   # Get Date Range
   start_date, end_date = get_date_range(date_range)
   # Genres
-  genres = genres.split("/")
+  genres = genres.split("::")
   # Band Types
-  band_types = band_types.split("/")
+  band_types = band_types.split("::")
   # Max Distance
   max_distance = get_max_distance_meters(max_distance)
 
@@ -134,7 +133,7 @@ def get_events_admin():
     for genre in genres:
        if not added and genre in event.genres:
           # Need Error Handling here, in case response was bad
-          event.set_distance_data(address_id)
+          event.set_distance_data(address)
           if (event.distance_value <= max_distance):
             event_list.append(event.get_all_details())
             added = True
@@ -214,7 +213,7 @@ def update_event(event_id):
   event_date = request.json['event_date']
   start_time = request.json['start_time']
   end_time = request.json['end_time']
-  address_id = request.json['address_id']
+  address = request.json['address']
   cover_charge = request.json['cover_charge']
   other_info = request.json['other_info']
   facebook_handle = request.json['facebook_handle']
@@ -222,13 +221,12 @@ def update_event(event_id):
   website = request.json['website']
   band_or_venue = request.json['band_or_venue']
   phone_number = request.json['phone_number']
-  address_description = request.json['address_description']
   event.update(dict(venue_name = venue_name, band_name = band_name, band_type = band_type,
                     tribute_band_name = tribute_band_name, genres = genres, event_date = event_date,
-                    start_time = start_time, end_time = end_time, address_id = address_id,
+                    start_time = start_time, end_time = end_time, address = address,
                     cover_charge = cover_charge, other_info = other_info, facebook_handle = facebook_handle,
                     instagram_handle = instagram_handle, website = website, band_or_venue = band_or_venue,
-                    phone_number = phone_number, address_description = address_description))
+                    phone_number = phone_number))
   db.session.commit()
   return f'Event (id: {event_id}) updated!'
 
@@ -285,6 +283,18 @@ def create_user():
 #     EmailSender.send_weekly_event_notification(user, matched_events)
 
 #   return {"email-status: ": "Emails Sent"}, 201
+
+
+# Get events based on given created date/event date
+@app.route('/all-events', methods= ['GET'])
+def get_all_events():
+  # Get events that meet the filter requirements
+  events = Event.query.filter().all()
+  event_list = []
+  for event in events:
+    event_list.append(event.get_all_details())
+    
+  return {'events': event_list}
 
 if __name__ == '__main__':
   app.run()

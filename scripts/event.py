@@ -19,7 +19,7 @@ class Event(db.Model):
   event_date = db.Column(db.Date, nullable=False)
   start_time = db.Column(db.Time, nullable=False)
   end_time = db.Column(db.Time, nullable=True)
-  address_id = db.Column(db.String, nullable=False)
+  address = db.Column(db.String, nullable=False)
   cover_charge = db.Column(db.Float, nullable=False)
   other_info = db.Column(db.String(250), nullable=True)
   facebook_handle = db.Column(db.String, nullable=True)
@@ -27,14 +27,13 @@ class Event(db.Model):
   website = db.Column(db.String, nullable=True)
   band_or_venue = db.Column(db.String, nullable=True)
   phone_number = db.Column(db.String, nullable=True)
-  address_description = db.Column(db.String, nullable=False)
   event_id = db.Column(db.String, nullable=False)
   email_address = db.Column(db.String, nullable=False)
   email_sent = db.Column(db.Boolean, nullable=False, default=False)
   
   def __init__(self, venue_name, band_name, band_type, tribute_band_name, genres, event_date, 
-               start_time, end_time, address_id, cover_charge, other_info, facebook_handle,
-               instagram_handle, website, band_or_venue, phone_number, address_description, event_id,
+               start_time, end_time, address, cover_charge, other_info, facebook_handle,
+               instagram_handle, website, band_or_venue, phone_number, event_id,
                email_address):
     self.venue_name = venue_name
     self.band_name = band_name
@@ -44,7 +43,7 @@ class Event(db.Model):
     self.event_date = event_date
     self.start_time = start_time
     self.end_time = end_time
-    self.address_id = address_id
+    self.address = address
     self.cover_charge = cover_charge
     self.other_info = other_info
     self.facebook_handle = facebook_handle
@@ -52,14 +51,13 @@ class Event(db.Model):
     self.website = website
     self.band_or_venue = band_or_venue
     self.phone_number = phone_number
-    self.address_description = address_description
     self.event_id = event_id
     self.email_address = email_address
     self.created_date = datetime.now(pytz.timezone("US/Eastern")).date().strftime("%Y-%m-%d")
     self.created_time = datetime.now(pytz.timezone("US/Eastern")).time().strftime("%H:%M:%S")
 
-  def set_distance_data(self, origin_place_id):
-    url = f'https://maps.googleapis.com/maps/api/distancematrix/json?origins=place_id:{origin_place_id}&destinations=place_id:{self.address_id}&units=imperial&key={API_KEY}'
+  def set_distance_data(self, origin):
+    url = f'https://maps.googleapis.com/maps/api/distancematrix/json?origins={origin}&destinations={self.address}&units=imperial&key={API_KEY}'
 
     try:
       response = requests.get(url)
@@ -71,7 +69,6 @@ class Event(db.Model):
       if data['status'] == 'OK':
         self.distance_formatted = data['rows'][0]['elements'][0]['distance']['text']
         self.distance_value = data['rows'][0]['elements'][0]['distance']['value']
-        self.address = data['destination_addresses'][0]
         return True
       else:
         print(f"Error: {data['status']}")
@@ -119,8 +116,6 @@ class Event(db.Model):
       "website": self.website,
       "phone_number": self.phone_number,
       "band_or_venue": self.band_or_venue,
-      "address_description": self.address_description,
-      "address_id": self.address_id,
       "event_id": self.event_id,
       "email_address": self.email_address,
       "created_date_formatted": created_datetime_formatted,
