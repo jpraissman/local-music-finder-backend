@@ -65,6 +65,7 @@ class Event(db.Model):
 
       data = response.json()
       
+      print(data)
       # Check if the response contains valid data
       if data['status'] == 'OK':
         self.distance_formatted = data['rows'][0]['elements'][0]['distance']['text']
