@@ -10,7 +10,6 @@ import os
 import scripts.send_emails as EmailSender
 from flask_executor import Executor
 from datetime import datetime
-import pytz
 
 # Create important server stuff
 app = Flask(__name__)
@@ -20,7 +19,7 @@ if database_url.startswith("postgres:"):
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-CORS(app, resources={r"/*": {"origins": [os.environ.get('WEBSITE_URL')]}})
+CORS(app)
 executor = Executor(app)
 
 # Must be imported after to avoid circular import
@@ -33,12 +32,14 @@ def create_event_background(event: Event):
   # Send email confirming event confirmation and giving Event ID
   print("Sending Event Confirmation")
   email_1_status = EmailSender.send_event_email(event)
-  print("Sent")
+  if email_1_status:
+    print("Sent")
 
   # Send email about even confirmation to admins
   print("Sending Admin Email")
   email_2_status = EmailSender.send_admin_event_email(event)
-  print("Sent")
+  if email_2_status:
+    print("Sent")
 
   # Get any events with the same date and address. If there are potential duplicates, send an email
   events = Event.query.filter(Event.event_date == event.event_date,
@@ -48,10 +49,11 @@ def create_event_background(event: Event):
   if (len(events) > 1):
     print("Sending duplicate email")
     email_3_status = EmailSender.send_duplicate_event_email(events)
-    print("Sent")
+    if email_3_status:
+      print("Sent")
 
   if (email_1_status and email_2_status and email_3_status):
-    print("Updating event")
+    print("Updating event to say emails were sent")
     Event.query.filter_by(event_id=event.event_id).update(dict(email_sent=True))
     db.session.commit()
     print("Updated")
@@ -101,12 +103,13 @@ def create_event():
   db.session.commit()
 
   # Run the background tasks of the event creation (duplicate checking and email confirmation)
-  # executor.submit(create_event_background, event)
+  executor.submit(create_event_background, event)
   
   return {'event': event.get_metadata()}
 
+# Get events (for main part of website)
 @app.route('/events', methods= ['GET'])
-def get_events_admin():
+def get_events():
   # Get filter values
   date_range = request.args.get('date_range')
   address = request.args.get('address')
@@ -132,17 +135,29 @@ def get_events_admin():
     added = False
     for genre in genres:
        if not added and genre in event.genres:
-          # Need Error Handling here, in case response was bad
-          event.set_distance_data(address)
-          if (event.distance_value <= max_distance):
-            event_list.append(event.get_all_details())
+          found_distance = event.set_distance_data(address)
+          if (found_distance and event.distance_value <= max_distance):
+            event_list.append(event.get_all_details(False))
             added = True
+    
+  # Sort the event_list by event_datetime
+  event_list_sorted = sorted(event_list, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
+  return {'events': event_list_sorted}
+
+# Get events whose email has not been sent (for admin site)
+@app.route('/email-errors', methods= ['GET'])
+def get_email_error_events():
+  # Get events that meet the filter requirements
+  events = Event.query.filter(Event.email_sent == False).all()
+  event_list = []
+  for event in events:
+    event_list.append(event.get_all_details(True))
     
   return {'events': event_list}
 
-# Get events based on given created date/event date
+# Get events based on given created date/event date (for admin site)
 @app.route('/events-admin', methods= ['GET'])
-def get_events():
+def get_events_admin():
   # Get filter values
   event_date = request.args.get('event_date')
   created_date = request.args.get('created_date')
@@ -170,7 +185,7 @@ def get_events():
                               Event.created_date <= created_end_date).all()
   event_list = []
   for event in events:
-    event_list.append(event.get_all_details())
+    event_list.append(event.get_all_details(True))
 
   # Determine text to display
   if (event_date == "All" and created_date == "All"):
@@ -187,7 +202,7 @@ def get_events():
 def get_event(event_id):
   try:
     event = Event.query.filter_by(event_id=event_id).one()
-    return {'event': event.get_all_details()}
+    return {'event': event.get_all_details(False)}
   except:
     return "Invalid ID", 400
   
@@ -231,27 +246,27 @@ def update_event(event_id):
   return f'Event (id: {event_id}) updated!'
 
 
-# Create a User that gets weekly event notifications
-@app.route('/users', methods = ['POST'])
-def create_user():
-  # Get all variables from body of request
-  email_address = request.json['email_address']
-  address_id = request.json['address_id']
-  max_distance = request.json['max_distance']
-  genres = request.json['genres']
-  band_types = request.json['band_types']
-  address_description = request.json['address_description']
+# # Create a User that gets weekly event notifications
+# @app.route('/users', methods = ['POST'])
+# def create_user():
+#   # Get all variables from body of request
+#   email_address = request.json['email_address']
+#   address_id = request.json['address_id']
+#   max_distance = request.json['max_distance']
+#   genres = request.json['genres']
+#   band_types = request.json['band_types']
+#   address_description = request.json['address_description']
 
-  # Convert max_distance into meters
-  max_distance_value = get_max_distance_meters(max_distance)
+#   # Convert max_distance into meters
+#   max_distance_value = get_max_distance_meters(max_distance)
 
-  # Create Event object and commit to the database
-  user = User(email_address, address_id, max_distance, genres, band_types, address_description,
-              max_distance_value)
-  db.session.add(user)
-  db.session.commit()
+#   # Create Event object and commit to the database
+#   user = User(email_address, address_id, max_distance, genres, band_types, address_description,
+#               max_distance_value)
+#   db.session.add(user)
+#   db.session.commit()
   
-  return {"user: ": "User Created"}, 201
+#   return {"user: ": "User Created"}, 201
 
 # # Send weekly event notifications to subscribed Users
 # @app.route('/send-emails', methods = ['POST'])
@@ -283,18 +298,6 @@ def create_user():
 #     EmailSender.send_weekly_event_notification(user, matched_events)
 
 #   return {"email-status: ": "Emails Sent"}, 201
-
-
-# Get events based on given created date/event date
-@app.route('/all-events', methods= ['GET'])
-def get_all_events():
-  # Get events that meet the filter requirements
-  events = Event.query.filter().all()
-  event_list = []
-  for event in events:
-    event_list.append(event.get_all_details())
-    
-  return {'events': event_list}
 
 if __name__ == '__main__':
   app.run()
