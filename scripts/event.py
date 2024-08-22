@@ -3,6 +3,7 @@ from datetime import datetime
 import requests
 import os
 import pytz
+from scripts.get_date_formatted import get_date_formatted
 
 API_KEY = os.environ.get('API_KEY')
 
@@ -102,7 +103,7 @@ class Event(db.Model):
       "start_time_formatted": self.start_time.strftime("%#I:%M %p"),
       "end_time": None if self.end_time is None else self.end_time.strftime("%#I:%M %p"),
       "cover_charge": self.cover_charge,
-      "date_formatted": self.event_date.strftime("%B %d, %Y"),
+      "date_formatted": get_date_formatted(self.event_date),
       "distance_formatted": self.distance_formatted if hasattr(self, "distance_formatted") else "",
       "address": self.address if hasattr(self, "address") else "",
       "genres": self.genres,
