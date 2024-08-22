@@ -103,7 +103,7 @@ def create_event():
   db.session.commit()
 
   # Run the background tasks of the event creation (duplicate checking and email confirmation)
-  executor.submit(create_event_background, event)
+  # executor.submit(create_event_background, event)
   
   return {'event': event.get_metadata()}
 
