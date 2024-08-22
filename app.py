@@ -82,6 +82,7 @@ def create_event():
   band_or_venue = request.json['band_or_venue']
   phone_number = request.json['phone_number']
   email_address = request.json['email_address']
+  send_emails = request.json['send_emails']
 
   # Generate random id
   unique_id_found = False
@@ -103,7 +104,8 @@ def create_event():
   db.session.commit()
 
   # Run the background tasks of the event creation (duplicate checking and email confirmation)
-  # executor.submit(create_event_background, event)
+  if send_emails == "Yes":
+    executor.submit(create_event_background, event)
   
   return {'event': event.get_metadata()}
 
