@@ -4,3 +4,5 @@ __pycache__
 credentials.json
 token.json
 scripts/refresh_creds.py
+scripts/test.py
+scripts/mass_create_events.py

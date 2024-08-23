@@ -3,10 +3,12 @@ import pytz
 
 def get_date_formatted(date):
   et = pytz.timezone("US/Eastern")
-  seven_days_away = datetime.now(et).date() + timedelta(days=7)
+  today = datetime.now(et).date()
 
-  if date < seven_days_away:
-    return date.strftime("%A")
+  if (today == date):
+    return "Today"
+  elif (today + timedelta(days=1) == date):
+    return "Tomorrow"
   else:
-    return date.strftime("%B %d")
+    return date.strftime("%A, %B %d")
 
