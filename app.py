@@ -139,7 +139,7 @@ def get_events():
        if not added and genre in event.genres:
           found_distance = event.set_distance_data(address)
           if (found_distance and event.distance_value <= max_distance):
-            event_list.append(event.get_all_details(False))
+            event_list.append(event.get_all_details(False, False))
             added = True
     
   # Sort the event_list by event_datetime
@@ -153,7 +153,7 @@ def get_email_error_events():
   events = Event.query.filter(Event.email_sent == False).all()
   event_list = []
   for event in events:
-    event_list.append(event.get_all_details(True))
+    event_list.append(event.get_all_details(True, True))
     
   return {'events': event_list}
 
@@ -187,7 +187,7 @@ def get_events_admin():
                               Event.created_date <= created_end_date).all()
   event_list = []
   for event in events:
-    event_list.append(event.get_all_details(True))
+    event_list.append(event.get_all_details(True, True))
 
   # Determine text to display
   if (event_date == "All" and created_date == "All"):
@@ -204,7 +204,7 @@ def get_events_admin():
 def get_event(event_id):
   try:
     event = Event.query.filter_by(event_id=event_id).one()
-    return {'event': event.get_all_details(False)}
+    return {'event': event.get_all_details(False, False)}
   except:
     return "Invalid ID", 400
   

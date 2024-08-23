@@ -81,7 +81,7 @@ class Event(db.Model):
         return False
     
 
-  def get_all_details(self, include_event_id):
+  def get_all_details(self, include_event_id, include_email_address):
     # Create event_datetime_str
     event_date_str = self.event_date.strftime("%Y-%m-%d")
     event_time_str = self.start_time.strftime("%H:%M:%S")
@@ -117,7 +117,7 @@ class Event(db.Model):
       "website": self.website,
       "phone_number": self.phone_number,
       "band_or_venue": self.band_or_venue,
-      "email_address": self.email_address,
+      "email_address": self.email_address if include_email_address else "Restricted",
       "created_date_formatted": created_datetime_formatted,
       "created_datetime": created_datetime_str,
       "event_datetime": event_datetime_str,
