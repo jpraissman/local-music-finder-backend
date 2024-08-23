@@ -5,9 +5,7 @@ def get_date_range(date_range):
   et = pytz.timezone("US/Eastern")
   today = datetime.now(et).date()
 
-  if date_range == "All Future Dates":
-    return all_future_dates(today)
-  elif date_range == "Today":
+  if date_range == "Today":
     return today_range(today)
   elif date_range == "Tomorrow":
     return tomorrow(today)
@@ -21,6 +19,8 @@ def get_date_range(date_range):
     return next_week(today)
   elif date_range == "Next 30 Days":
     return next_30_days(today)
+  elif date_range == "Next 60 Days":
+    return next_60_days(today)
 
 # Returns the start and end date for this weekend (Fri-Sun)
 def this_weekend(today):
@@ -66,9 +66,9 @@ def next_week(today):
 def next_30_days(today):
   return (today, today + timedelta(days=30))
 
-# Returns the start and end date for the next 1000 days
-def all_future_dates(today):
-  return (today, today + timedelta(days=1000))
+# Returns the start and end date for the next 60 days
+def next_60_days(today):
+  return (today, today + timedelta(days=60))
 
 # Returns the start and end date for today
 def today_range(today):
