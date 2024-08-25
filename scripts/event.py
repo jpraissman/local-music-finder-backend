@@ -78,7 +78,7 @@ class Event(db.Model):
         print(data)
         return False
 
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         print(f"Error fetching distance matrix: {e}")
         return False
     

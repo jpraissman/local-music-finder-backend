@@ -26,7 +26,7 @@ def get_email_creds():
     
     # If there are creds are expired, refresh the token
     if not creds.valid:
-      print("Here")
+      print("Creds not valid")
       if creds.expired and creds.refresh_token:
         print("Trying to refresh")
         creds.refresh(Request())
@@ -42,6 +42,8 @@ def get_email_creds():
             'GOOGLE_ACCESS_TOKEN': creds.token,
             'GOOGLE_EXPIRY': creds.expiry.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
           })
+      
+        print("Refresh successful")
 
     return creds
   except Exception as e:

@@ -94,6 +94,35 @@ def send_duplicate_event_email(events):
     print(f"An email error occurred: {e}")
 
     return False
+  
+def send_error_occurred_email(e):
+  creds = get_email_creds()
+
+  try:
+    if creds is None:
+      raise ValueError("Given creds were invalid")
+    
+    service = build("gmail", "v1", credentials=creds)
+    message = EmailMessage()
+
+    body = f"<p>An error occurred in the backend</p><p>Error message: {e}</p>"
+
+    message.set_content(body, 'html')
+
+    message["To"] = os.environ.get('INFO_EMAIL_ADDRESS')
+    message["From"] = os.environ.get('INFO_EMAIL_ADDRESS')
+    message["Subject"] = "ERROR OCCURRED: See details"
+
+    # encoded message
+    encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    create_message = {"raw": encoded_message}
+    service.users().messages().send(userId="me", body=create_message).execute()
+
+    return True
+  except Exception as e:
+    print(f"An email error occurred: {e}")
+
+    return False
 
 # def send_weekly_event_notification(user, events):
 #   creds = get_email_creds()

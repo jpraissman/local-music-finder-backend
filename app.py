@@ -24,7 +24,14 @@ executor = Executor(app)
 
 # Must be imported after to avoid circular import
 from scripts.event import Event
-from scripts.user import User
+# from scripts.user import User
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+  print("Handling Error")
+  EmailSender.send_error_occurred_email(e)
+  return "An error occured", 500
 
 # Background events to run after an event is created.
 def create_event_background(event: Event):
@@ -133,14 +140,20 @@ def get_events():
                               Event.event_date >= start_date,
                               Event.event_date <= end_date).all()
   event_list = []
+  error_occurred = False
   for event in events:
     added = False
     for genre in genres:
        if not added and genre in event.genres:
+          added = True
           found_distance = event.set_distance_data(address)
           if (found_distance and event.distance_value <= max_distance):
             event_list.append(event.get_all_details(False, False))
-            added = True
+          else:
+            error_occurred = True
+
+  if error_occurred:
+    EmailSender.send_error_occurred_email(f"An error occured while fetching events.")
     
   # Sort the event_list by event_datetime
   event_list_sorted = sorted(event_list, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
@@ -191,11 +204,11 @@ def get_events_admin():
 
   # Determine text to display
   if (event_date == "All" and created_date == "All"):
-    display_text = f"Showing all events occuring today or after ({len(events)} events)"
+    display_text = f"Showing all events occuring today or after"
   elif (event_date == "All"):
-    display_text = f"Showing all events created on {created_start_date.strftime("%B %d, %Y")} ({len(events)} events)"
+    display_text = f"Showing all events created on {created_start_date.strftime("%B %d, %Y")}"
   else:
-    display_text = f"Showing all events occuring on {event_start_date.strftime("%B %d, %Y")} ({len(events)} events)"
+    display_text = f"Showing all events occuring on {event_start_date.strftime("%B %d, %Y")}"
     
   return {'display_text': display_text, 'events': event_list}
 
