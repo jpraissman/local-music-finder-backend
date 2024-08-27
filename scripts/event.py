@@ -72,6 +72,7 @@ class Event(db.Model):
       if data['status'] == 'OK':
         self.distance_formatted = data['rows'][0]['elements'][0]['distance']['text']
         self.distance_value = data['rows'][0]['elements'][0]['distance']['value']
+        self.address = data['destination_addresses'][0]
         return True
       else:
         print(f"Error: {data['status']}")
