@@ -10,8 +10,8 @@ import os
 import scripts.send_emails as EmailSender
 from flask_executor import Executor
 from datetime import datetime
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+# from flask_limiter import Limiter
+# from flask_limiter.util import get_remote_address
 import traceback
 import json
 
@@ -25,9 +25,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 CORS(app)
 executor = Executor(app)
-limiter = Limiter(app=app, 
-                  key_func=lambda: "global", 
-                  default_limits=["300 per minute"])
+# limiter = Limiter(app=app, 
+#                   key_func=lambda: "global", 
+#                   default_limits=["300 per minute"])
 
 # Must be imported after to avoid circular import
 from scripts.event import Event
@@ -61,10 +61,10 @@ def handle_exception(e):
   EmailSender.send_error_occurred_email(json.dumps(response, indent=8))
   return jsonify(response), 500
 
-@app.errorhandler(429)
-def handle_rate_limit_exception():
-  print("Handling Rate Limit Error")
-  EmailSender.send_error_occurred_email("The API limit was hit: Too many requests in the last minute have been made.")
+# @app.errorhandler(429)
+# def handle_rate_limit_exception():
+#   print("Handling Rate Limit Error")
+#   EmailSender.send_error_occurred_email("The API limit was hit: Too many requests in the last minute have been made.")
 
 # Background events to run after an event is created.
 def create_event_background(event: Event):
