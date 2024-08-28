@@ -73,15 +73,15 @@ class Event(db.Model):
         self.distance_formatted = data['rows'][0]['elements'][0]['distance']['text']
         self.distance_value = data['rows'][0]['elements'][0]['distance']['value']
         self.address = data['destination_addresses'][0]
-        return True
+        return [True]
       else:
         print(f"Error: {data['status']}")
         print(data)
-        return False
+        return [False, origin, self.address, data]
 
     except Exception as e:
         print(f"Error fetching distance matrix: {e}")
-        return False
+        return [False, origin, self.address, data]
     
 
   def get_all_details(self, include_event_id, include_email_address):

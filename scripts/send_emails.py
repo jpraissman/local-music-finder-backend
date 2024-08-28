@@ -95,7 +95,7 @@ def send_duplicate_event_email(events):
 
     return False
   
-def send_error_occurred_email(e):
+def send_error_occurred_email(message_body):
   creds = get_email_creds()
 
   try:
@@ -105,13 +105,11 @@ def send_error_occurred_email(e):
     service = build("gmail", "v1", credentials=creds)
     message = EmailMessage()
 
-    body = f"<p>An error occurred in the backend</p><p>Error message: {e}</p>"
-
-    message.set_content(body, 'html')
+    message.set_content(message_body)
 
     message["To"] = os.environ.get('INFO_EMAIL_ADDRESS')
     message["From"] = os.environ.get('INFO_EMAIL_ADDRESS')
-    message["Subject"] = "ERROR OCCURRED: See details"
+    message["Subject"] = "BACKEND ERROR OCCURRED: See details"
 
     # encoded message
     encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()

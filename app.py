@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import time
@@ -10,6 +10,10 @@ import os
 import scripts.send_emails as EmailSender
 from flask_executor import Executor
 from datetime import datetime
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+import traceback
+import json
 
 # Create important server stuff
 app = Flask(__name__)
@@ -21,17 +25,46 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 CORS(app)
 executor = Executor(app)
+limiter = Limiter(app=app, 
+                  key_func=lambda: "global", 
+                  default_limits=["300 per minute"])
 
 # Must be imported after to avoid circular import
 from scripts.event import Event
 # from scripts.user import User
 
+rate_limit_email_sent = False
 
 @app.errorhandler(Exception)
 def handle_exception(e):
   print("Handling Error")
-  EmailSender.send_error_occurred_email(e)
-  return "An error occured", 500
+
+  tb = traceback.format_exc()
+
+  request_info = {
+    "method": request.method,
+    "url": request.url,
+    "headers": dict(request.headers),
+    "body": request.get_data(as_text=True)
+  }
+
+  response = {
+    "error": {
+      "type": type(e).__name__,
+      "message": str(e),
+      "traceback": tb
+    },
+    "request": request_info,
+    "path": request.path
+  }
+
+  EmailSender.send_error_occurred_email(json.dumps(response, indent=8))
+  return jsonify(response), 500
+
+@app.errorhandler(429)
+def handle_rate_limit_exception():
+  print("Handling Rate Limit Error")
+  EmailSender.send_error_occurred_email("The API limit was hit: Too many requests in the last minute have been made.")
 
 # Background events to run after an event is created.
 def create_event_background(event: Event):
@@ -141,19 +174,24 @@ def get_events():
                               Event.event_date <= end_date).all()
   event_list = []
   error_occurred = False
+  errors = []
   for event in events:
     added = False
     for genre in genres:
        if not added and genre in event.genres:
           added = True
-          found_distance = event.set_distance_data(address)
-          if (found_distance and event.distance_value <= max_distance):
+          response = event.set_distance_data(address)
+          if (response[0] and event.distance_value <= max_distance):
             event_list.append(event.get_all_details(False, False))
           else:
             error_occurred = True
+            errors.append(response)
 
   if error_occurred:
-    EmailSender.send_error_occurred_email(f"An error occured while fetching events.")
+    message_body = ""
+    for error in errors:
+      message_body += f"\n\nOrigin: {error[1]}\nDestination: {error[2]}\nResponse: {error[3]}"
+    EmailSender.send_error_occurred_email(f"An error occured while fetching events.\n{message_body}")
     
   # Sort the event_list by event_datetime
   event_list_sorted = sorted(event_list, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
