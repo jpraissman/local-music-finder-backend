@@ -181,9 +181,9 @@ def get_events():
        if not added and genre in event.genres:
           added = True
           response = event.set_distance_data(address)
-          if (response[0] and event.distance_value <= max_distance):
+          if response[0] and event.distance_value <= max_distance:
             event_list.append(event.get_all_details(False, False))
-          else:
+          elif not response[0]:
             error_occurred = True
             errors.append(response)
 
