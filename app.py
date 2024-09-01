@@ -10,10 +10,11 @@ import os
 import scripts.send_emails as EmailSender
 from flask_executor import Executor
 from datetime import datetime
-# from flask_limiter import Limiter
+from flask_limiter import Limiter
 # from flask_limiter.util import get_remote_address
 import traceback
 import json
+import time
 
 # Create important server stuff
 app = Flask(__name__)
@@ -25,15 +26,18 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 CORS(app)
 executor = Executor(app)
-# limiter = Limiter(app=app, 
-#                   key_func=lambda: "global", 
-#                   default_limits=["300 per minute"])
+limiter = Limiter(app=app, 
+                  key_func=lambda: "global", 
+                  default_limits=["100 per minute"])
 
 # Must be imported after to avoid circular import
 from scripts.event import Event
 # from scripts.user import User
 
-rate_limit_email_sent = False
+
+# Used to make helper send rate limit emails
+class RateLimitEmailHelper:
+  email_sent = False
 
 @app.errorhandler(Exception)
 def handle_exception(e):
@@ -61,10 +65,24 @@ def handle_exception(e):
   EmailSender.send_error_occurred_email(json.dumps(response, indent=8))
   return jsonify(response), 500
 
-# @app.errorhandler(429)
-# def handle_rate_limit_exception():
-#   print("Handling Rate Limit Error")
-#   EmailSender.send_error_occurred_email("The API limit was hit: Too many requests in the last minute have been made.")
+# Handles rate limit errors by sending an email alerting that a rate limit has been hit
+@app.errorhandler(429)
+def handle_rate_limit_exception(e):
+  print("Handling Rate Limit Error")
+  if not RateLimitEmailHelper.email_sent:
+    EmailSender.send_error_occurred_email("The API limit was hit: Too many requests in the last minute have been made (Over 100 requests).")
+    RateLimitEmailHelper.email_sent = True
+    executor.submit(reset_rate_limit_email)
+    print("Sent email and submitted reset request")
+  
+  return jsonify("Too many requests have been made in the last minute"), 429
+
+# Resets rate limit email so emails can be sent again when the application hits a rate limit.
+def reset_rate_limit_email():
+  time.sleep(1200)
+  RateLimitEmailHelper.email_sent = False
+  print("Reset rate limit email")
+
 
 # Background events to run after an event is created.
 def create_event_background(event: Event):
@@ -255,9 +273,9 @@ def get_events_admin():
 def get_event(event_id):
   try:
     event = Event.query.filter_by(event_id=event_id).one()
-    return {'event': event.get_all_details(False, False)}
+    return {'event': event.get_all_details(False, False)}, 200
   except:
-    return "Invalid ID", 400
+    return jsonify("Invalid ID"), 400
   
 
 # delete an event
