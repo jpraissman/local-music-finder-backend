@@ -15,6 +15,7 @@ from flask_limiter import Limiter
 import traceback
 import json
 import time
+import requests
 
 # Create important server stuff
 app = Flask(__name__)
@@ -34,6 +35,7 @@ limiter = Limiter(app=app,
 from scripts.event import Event
 # from scripts.user import User
 
+API_KEY = os.environ.get('API_KEY')
 
 # Used to make helper send rate limit emails
 class RateLimitEmailHelper:
@@ -167,6 +169,42 @@ def create_event():
   
   return {'event': event.get_metadata()}
 
+def process_events(events, max_distance, origin):
+  returned_events = []
+
+  destinations = ""
+  for event in events:
+    destinations += event.address + "|"
+  url = f'https://maps.googleapis.com/maps/api/distancematrix/json?origins={origin}&destinations={destinations}&units=imperial&key={API_KEY}'
+  
+  try:
+    response = requests.get(url)
+    response.raise_for_status()  # Raise an exception for 4xx/5xx errors
+
+    data = response.json()
+    
+    # Check if the response contains valid data
+    if data['status'] == 'OK':
+      destination_addresses = data["destination_addresses"]
+      elements = data['rows'][0]['elements']
+      for index, element in enumerate(elements):
+        distance_formatted = element['distance']['text']
+        distance_value = element['distance']['value']
+        new_address = destination_addresses[index]
+        events[index].set_distance_data(distance_formatted, distance_value, new_address)
+        if distance_value <= max_distance:
+          returned_events.append(events[index].get_all_details(False, False))
+    else:
+      print(f"Error: {data['status']}")
+      # print(data)
+      # return [False, origin, self.address, data]
+
+  except Exception as e:
+      print(f"Error fetching distance matrix: {e}")
+      # return [False, origin, self.address, data]
+  
+  return returned_events
+
 # Get events (for main part of website)
 @app.route('/events', methods= ['GET'])
 def get_events():
@@ -187,23 +225,33 @@ def get_events():
   max_distance = get_max_distance_meters(max_distance)
 
   # Get events that meet the filter requirements
-  events = Event.query.filter(Event.band_type.in_(band_types),
+  all_events = Event.query.filter(Event.band_type.in_(band_types),
                               Event.event_date >= start_date,
                               Event.event_date <= end_date).all()
-  event_list = []
+  all_final_events = []
+  events_to_process = []
   error_occurred = False
   errors = []
-  for event in events:
+  for event in all_events:
     added = False
     for genre in genres:
        if not added and genre in event.genres:
           added = True
-          response = event.set_distance_data(address)
-          if response[0] and event.distance_value <= max_distance:
-            event_list.append(event.get_all_details(False, False))
-          elif not response[0]:
-            error_occurred = True
-            errors.append(response)
+          events_to_process.append(event)
+          if len(events_to_process) == 25:
+            all_final_events.extend(process_events(events_to_process, max_distance, address))
+            events_to_process = []
+
+  if len(events_to_process) > 0:
+    all_final_events.extend(process_events(events_to_process, max_distance, address))
+
+
+          # response = event.set_distance_data(address)
+          # if response[0] and event.distance_value <= max_distance:
+          #   event_list.append(event.get_all_details(False, False))
+          # elif not response[0]:
+          #   error_occurred = True
+          #   errors.append(response)
 
   if error_occurred:
     message_body = ""
@@ -212,7 +260,7 @@ def get_events():
     EmailSender.send_error_occurred_email(f"An error occured while fetching events.\n{message_body}")
     
   # Sort the event_list by event_datetime
-  event_list_sorted = sorted(event_list, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
+  event_list_sorted = sorted(all_final_events, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
   return {'events': event_list_sorted}
 
 # Get events whose email has not been sent (for admin site)

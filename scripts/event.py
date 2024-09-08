@@ -5,8 +5,6 @@ import os
 import pytz
 from scripts.get_date_formatted import get_date_formatted
 
-API_KEY = os.environ.get('API_KEY')
-
 class Event(db.Model):
   __tablename__ = 'event'
   id = db.Column(db.Integer, primary_key=True)
@@ -59,30 +57,10 @@ class Event(db.Model):
     self.created_time = datetime.now(pytz.timezone("US/Eastern")).time().strftime("%H:%M:%S")
     self.agrees_to_terms_and_privacy = True
 
-  def set_distance_data(self, origin):
-    url = f'https://maps.googleapis.com/maps/api/distancematrix/json?origins={origin}&destinations={self.address}&units=imperial&key={API_KEY}'
-
-    try:
-      response = requests.get(url)
-      response.raise_for_status()  # Raise an exception for 4xx/5xx errors
-
-      data = response.json()
-      
-      # Check if the response contains valid data
-      if data['status'] == 'OK':
-        self.distance_formatted = data['rows'][0]['elements'][0]['distance']['text']
-        self.distance_value = data['rows'][0]['elements'][0]['distance']['value']
-        self.address = data['destination_addresses'][0]
-        return [True]
-      else:
-        print(f"Error: {data['status']}")
-        print(data)
-        return [False, origin, self.address, data]
-
-    except Exception as e:
-        print(f"Error fetching distance matrix: {e}")
-        return [False, origin, self.address, data]
-    
+  def set_distance_data(self, distance_formatted, distance_value, new_address):
+    self.distance_formatted = distance_formatted
+    self.distance_value = distance_value
+    self.address = new_address
 
   def get_all_details(self, include_event_id, include_email_address):
     # Create event_datetime_str
