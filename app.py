@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import time
@@ -16,6 +16,9 @@ import traceback
 import json
 import time
 import requests
+from typing import List
+import csv
+import io
 
 # Create important server stuff
 app = Flask(__name__)
@@ -33,6 +36,7 @@ limiter = Limiter(app=app,
 
 # Must be imported after to avoid circular import
 from scripts.event import Event
+from scripts.query import Query
 # from scripts.user import User
 
 API_KEY = os.environ.get('API_KEY')
@@ -205,6 +209,13 @@ def process_events(events, max_distance, origin):
   
   return returned_events
 
+# Create a query
+def create_query(time_range: str, location: str, distance: str,
+                 genres: List[str], band_types: List[str]):
+  query = Query(time_range, location, distance, genres, band_types)
+  db.session.add(query)
+  db.session.commit()
+
 # Get events (for main part of website)
 @app.route('/events', methods= ['GET'])
 def get_events():
@@ -259,9 +270,41 @@ def get_events():
       message_body += f"\n\nOrigin: {error[1]}\nDestination: {error[2]}\nResponse: {error[3]}"
     EmailSender.send_error_occurred_email(f"An error occured while fetching events.\n{message_body}")
     
+  # Create a row in the 'Query' table for this query.
+  max_distance = request.args.get('max_distance')
+  executor.submit(create_query, date_range, address, max_distance, genres, band_types)
+
   # Sort the event_list by event_datetime
   event_list_sorted = sorted(all_final_events, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
   return {'events': event_list_sorted}
+
+# Get a CSV file of all the queries
+@app.route('/all-queries', methods= ['GET'])
+def get_all_queries():
+  # Step 1: Create an in-memory string buffer
+  csv_buffer = io.StringIO()
+
+  # Step 2: Use the csv writer to write to the buffer
+  writer = csv.writer(csv_buffer)
+  writer.writerow(['Search Date', 'Date Range', 'Location', 'Distance',
+                   'Genres', 'Band Types'])  # CSV header
+
+  queries: List[Query] = Query.query.all()
+  for query in queries:
+    writer.writerow([query.created_at, query.time_range, query.location,
+                     query.distance, query.genres, query.band_types])
+
+  # Step 3: Set the buffer's position to the start (so it can be read)
+  csv_buffer.seek(0)
+
+  # Step 4: Create a Flask Response, passing the CSV data as content
+  response = Response(csv_buffer.getvalue(), mimetype='text/csv')
+
+  # Step 5: Set the content-disposition header to prompt a download
+  response.headers['Content-Disposition'] = 'attachment; filename=searches.csv'
+
+  return response
+
 
 # Get events whose email has not been sent (for admin site)
 @app.route('/email-errors', methods= ['GET'])
