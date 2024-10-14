@@ -212,7 +212,12 @@ def process_events(events, max_distance, origin):
 # Create a query
 def create_query(time_range: str, location: str, distance: str,
                  genres: List[str], band_types: List[str]):
-  ip = request.remote_addr
+  # Get the client's IP address from the X-Forwarded-For header (if exists)
+  ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+  
+  # If there are multiple IPs in X-Forwarded-For, take the first one
+  if ip:
+      ip = ip.split(',')[0].strip()
   print("Here1")
   print(ip)
   print("Here2")
