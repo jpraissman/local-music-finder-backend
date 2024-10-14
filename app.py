@@ -212,16 +212,6 @@ def process_events(events, max_distance, origin):
 # Create a query
 def create_query(time_range: str, location: str, distance: str,
                  genres: List[str], band_types: List[str]):
-  if 'X-Forwarded-For' in request.headers:
-    ip = request.headers['X-Forwarded-For']
-    print("Here first")
-  else:
-    ip = request.remote_addr
-    print("Here Second")
-  
-  print("Here1")
-  print(ip)
-  print("Here2")
   query = Query(time_range, location, distance, genres, band_types)
   db.session.add(query)
   db.session.commit()
