@@ -369,7 +369,8 @@ def get_event(event_id):
     return jsonify("Invalid ID"), 400
 
 # delete a query
-@app.route('/queries/<query_id>', methods = ['DELETE'])
+# using GET for now as a temporary easy way to delete them.
+@app.route('/queries/<query_id>', methods = ['GET'])
 def delete_query(query_id):
   query = Query.query.filter_by(id=query_id).one()
   db.session.delete(query)
