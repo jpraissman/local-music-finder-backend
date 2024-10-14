@@ -215,7 +215,9 @@ def create_query(time_range: str, location: str, distance: str,
   if 'X-Forwarded-For' in request.headers:
     ip = request.headers['X-Forwarded-For']
     print("Here first")
-  ip = request.remote_addr
+  else:
+    ip = request.remote_addr
+    print("Here Second")
   
   print("Here1")
   print(ip)
