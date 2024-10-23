@@ -12,10 +12,13 @@ class Query(db.Model):
   distance = db.Column(db.String, nullable=False)
   genres = db.Column(ARRAY(db.String), nullable=False)
   band_types = db.Column(ARRAY(db.String), nullable=False)
+  from_where = db.Column(db.String, nullable=False)
 
-  def __init__(self, time_range: str, location: str, distnce: str, genres: List[str], band_types: List[str]):
+  def __init__(self, time_range: str, location: str, distnce: str, 
+               genres: List[str], band_types: List[str], from_where: str):
     self.time_range = time_range
     self.location = location
     self.distance = distnce
     self.genres = genres
     self.band_types = band_types
+    self.from_where = from_where
