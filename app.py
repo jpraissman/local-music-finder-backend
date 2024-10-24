@@ -37,6 +37,7 @@ limiter = Limiter(app=app,
 # Must be imported after to avoid circular import
 from scripts.event import Event
 from scripts.query import Query
+from scripts.visit import Visit
 # from scripts.user import User
 
 API_KEY = os.environ.get('API_KEY')
@@ -123,7 +124,19 @@ def create_event_background(event: Event):
     print("Updated")
   
   print("Finished background stuff")
-  
+
+# Create a Visit
+@app.route('/visit', methods = ['POST'])
+def create_visit():
+  path = request.json['path']
+  from_where = request.json['from_where']
+  user_id = request.json['user_id']
+
+  visit = Visit(path, from_where, user_id)
+  db.session.add(visit)
+  db.session.commit()
+
+  return "Visit Created"
 
 # Create an Event
 @app.route('/events', methods = ['POST'])
@@ -306,6 +319,31 @@ def get_all_queries():
 
   return response
 
+# Get a CSV file of all the visits
+@app.route('/all-visits', methods= ['GET'])
+def get_all_visits():
+  # Step 1: Create an in-memory string buffer
+  csv_buffer = io.StringIO()
+
+  # Step 2: Use the csv writer to write to the buffer
+  writer = csv.writer(csv_buffer)
+  writer.writerow(['Visit Date', 'Path', 'From', 'User'])  # CSV header
+
+  visits: List[Visit] = Visit.query.all()
+  for visit in visits:
+    writer.writerow([visit.created_at, visit.path, visit.from_where, visit.user_id])
+
+  # Step 3: Set the buffer's position to the start (so it can be read)
+  csv_buffer.seek(0)
+
+  # Step 4: Create a Flask Response, passing the CSV data as content
+  response = Response(csv_buffer.getvalue(), mimetype='text/csv')
+
+  # Step 5: Set the content-disposition header to prompt a download
+  response.headers['Content-Disposition'] = 'attachment; filename=searches.csv'
+
+  return response
+
 
 # Get events whose email has not been sent (for admin site)
 @app.route('/email-errors', methods= ['GET'])
@@ -368,15 +406,6 @@ def get_event(event_id):
     return {'event': event.get_all_details(False, False)}, 200
   except:
     return jsonify("Invalid ID"), 400
-
-# # delete a query
-# # using GET for now as a temporary easy way to delete them.
-# @app.route('/queries/<query_id>', methods = ['GET'])
-# def delete_query(query_id):
-#   query = Query.query.filter_by(id=query_id).one()
-#   db.session.delete(query)
-#   db.session.commit()
-#   return f'Query deleted!'
 
 # delete an event
 @app.route('/events/<event_id>', methods = ['DELETE'])
