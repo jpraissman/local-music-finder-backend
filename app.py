@@ -285,6 +285,7 @@ def get_events():
   max_distance = request.args.get('max_distance')
   query = Query(date_range, address, max_distance, genres, band_types, from_where)
   db.session.add(query)
+  print(db.session.new)
   db.session.commit()
   print("Commited query")
   print(db.session.new)
