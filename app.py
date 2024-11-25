@@ -225,7 +225,6 @@ def process_events(events, max_distance, origin):
 # Get events (for main part of website)
 @app.route('/events', methods= ['GET'])
 def get_events():
-  print("Beginning")
   # Get filter values
   date_range = request.args.get('date_range')
   address = request.args.get('address')
@@ -247,7 +246,6 @@ def get_events():
   all_events = Event.query.filter(Event.band_type.in_(band_types),
                               Event.event_date >= start_date,
                               Event.event_date <= end_date).all()
-  print("Got Events")
   all_final_events = []
   events_to_process = []
   error_occurred = False
@@ -279,16 +277,11 @@ def get_events():
       message_body += f"\n\nOrigin: {error[1]}\nDestination: {error[2]}\nResponse: {error[3]}"
     EmailSender.send_error_occurred_email(f"An error occured while fetching events.\n{message_body}")
     
-  print("About to submit query")
-  print(db.session.new)
   # Create a row in the 'Query' table for this query.
   max_distance = request.args.get('max_distance')
   query = Query(date_range, address, max_distance, genres, band_types, from_where)
   db.session.add(query)
-  print(db.session.new)
   db.session.commit()
-  print("Commited query")
-  print(db.session.new)
 
   # Sort the event_list by event_datetime
   event_list_sorted = sorted(all_final_events, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
