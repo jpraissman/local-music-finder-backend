@@ -1,7 +1,5 @@
 from app import db
 from datetime import datetime
-import requests
-import os
 import pytz
 from scripts.get_date_formatted import get_date_formatted
 
@@ -30,6 +28,7 @@ class Event(db.Model):
   email_address = db.Column(db.String, nullable=False)
   email_sent = db.Column(db.Boolean, nullable=False, default=False)
   agrees_to_terms_and_privacy = db.Column(db.Boolean, nullable=False)
+  event_distances = db.relationship('EventDistance', backref='event')
   
   def __init__(self, venue_name, band_name, band_type, tribute_band_name, genres, event_date, 
                start_time, end_time, address, cover_charge, other_info, facebook_handle,

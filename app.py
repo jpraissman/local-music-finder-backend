@@ -19,6 +19,7 @@ import requests
 from typing import List
 import csv
 import io
+from flask_migrate import Migrate
 
 # Create important server stuff
 app = Flask(__name__)
@@ -28,6 +29,7 @@ if database_url.startswith("postgres:"):
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
 CORS(app)
 executor = Executor(app)
 limiter = Limiter(app=app, 
@@ -38,7 +40,11 @@ limiter = Limiter(app=app,
 from scripts.event import Event
 from scripts.query import Query
 from scripts.visit import Visit
+from scripts.event_distance import EventDistance
+from scripts.location import Location
 # from scripts.user import User
+
+migrate = Migrate(app, db)
 
 API_KEY = os.environ.get('API_KEY')
 
@@ -124,6 +130,16 @@ def create_event_background(event: Event):
     print("Updated")
   
   print("Finished background stuff")
+
+@app.route('/test', methods=['POST'])
+def test():
+  location = Location.query.filter_by(location="Wayne, NJ").first()
+  print(location.id)
+  event_distance = EventDistance(location_id=location.id, event_id=77)
+  db.session.add(event_distance)
+  db.session.commit()
+
+  return "Test completed."
 
 # Create a Visit
 @app.route('/visit', methods = ['POST'])
