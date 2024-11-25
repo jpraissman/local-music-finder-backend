@@ -298,7 +298,7 @@ def get_all_queries():
   writer.writerow(['Search Date', 'Date Range', 'Location', 'Distance',
                    'Genres', 'Band Types', 'From', 'Id'])  # CSV header
 
-  queries: List[Query] = Query.query.all()
+  queries: List[Query] = Query.query.order_by(Query.created_at).all()
   for query in queries:
     writer.writerow([query.created_at, query.time_range, query.location,
                      query.distance, query.genres, query.band_types, query.from_where, query.id])
