@@ -280,12 +280,14 @@ def get_events():
     EmailSender.send_error_occurred_email(f"An error occured while fetching events.\n{message_body}")
     
   print("About to submit query")
+  print(db.session.new)
   # Create a row in the 'Query' table for this query.
   max_distance = request.args.get('max_distance')
   query = Query(date_range, address, max_distance, genres, band_types, from_where)
   db.session.add(query)
   db.session.commit()
   print("Commited query")
+  print(db.session.new)
 
   # Sort the event_list by event_datetime
   event_list_sorted = sorted(all_final_events, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
