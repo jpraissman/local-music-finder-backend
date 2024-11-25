@@ -238,13 +238,6 @@ def process_events(events, max_distance, origin):
   
   return returned_events
 
-# Create a query
-def create_query(time_range: str, location: str, distance: str,
-                 genres: List[str], band_types: List[str], from_where: str):
-  query = Query(time_range, location, distance, genres, band_types, from_where)
-  db.session.add(query)
-  db.session.commit()
-
 # Get events (for main part of website)
 @app.route('/events', methods= ['GET'])
 def get_events():
@@ -302,7 +295,9 @@ def get_events():
     
   # Create a row in the 'Query' table for this query.
   max_distance = request.args.get('max_distance')
-  executor.submit(create_query, date_range, address, max_distance, genres, band_types, from_where)
+  query = Query(date_range, address, max_distance, genres, band_types, from_where)
+  db.session.add(query)
+  db.session.commit()
 
   # Sort the event_list by event_datetime
   event_list_sorted = sorted(all_final_events, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
@@ -319,7 +314,7 @@ def get_all_queries():
   writer.writerow(['Search Date', 'Date Range', 'Location', 'Distance',
                    'Genres', 'Band Types', 'From', 'Id'])  # CSV header
 
-  queries: List[Query] = Query.query.all()
+  queries: List[Query] = Query.query.order_by(Query.created_at).all()
   for query in queries:
     writer.writerow([query.created_at, query.time_range, query.location,
                      query.distance, query.genres, query.band_types, query.from_where, query.id])
