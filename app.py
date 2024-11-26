@@ -97,6 +97,17 @@ def reset_rate_limit_email():
   print("Reset rate limit email")
 
 
+# Background event to run after an event is created. This function creates an EventDistance for
+# the given Event with each Location in the database
+def create_event_distances(event: Event):
+  print("Here")
+  locations = Location.query.all()
+  for location in locations:
+    event_distance = EventDistance(location=location, event=event)
+    db.session.add(event_distance)
+  db.session.commit()
+
+
 # Background events to run after an event is created.
 def create_event_background(event: Event):
   print("Starting background events")
@@ -130,16 +141,6 @@ def create_event_background(event: Event):
     print("Updated")
   
   print("Finished background stuff")
-
-@app.route('/test', methods=['POST'])
-def test():
-  location = Location.query.filter_by(location="Wayne, NJ").first()
-  print(location.id)
-  event_distance = EventDistance(location_id=location.id, event_id=77)
-  db.session.add(event_distance)
-  db.session.commit()
-
-  return "Test completed."
 
 # Create a Visit
 @app.route('/visit', methods = ['POST'])
@@ -199,44 +200,9 @@ def create_event():
   # Run the background tasks of the event creation (duplicate checking and email confirmation)
   if send_emails == "Yes":
     executor.submit(create_event_background, event)
+  executor.submit(create_event_distances, event)
   
   return {'event': event.get_metadata()}
-
-def process_events(events, max_distance, origin):
-  returned_events = []
-
-  destinations = ""
-  for event in events:
-    destinations += event.address + "|"
-  url = f'https://maps.googleapis.com/maps/api/distancematrix/json?origins={origin}&destinations={destinations}&units=imperial&key={API_KEY}'
-  
-  try:
-    response = requests.get(url)
-    response.raise_for_status()  # Raise an exception for 4xx/5xx errors
-
-    data = response.json()
-    
-    # Check if the response contains valid data
-    if data['status'] == 'OK':
-      destination_addresses = data["destination_addresses"]
-      elements = data['rows'][0]['elements']
-      for index, element in enumerate(elements):
-        distance_formatted = element['distance']['text']
-        distance_value = element['distance']['value']
-        new_address = destination_addresses[index]
-        events[index].set_distance_data(distance_formatted, distance_value, new_address)
-        if distance_value <= max_distance:
-          returned_events.append(events[index].get_all_details(False, False))
-    else:
-      print(f"Error: {data['status']}")
-      # print(data)
-      # return [False, origin, self.address, data]
-
-  except Exception as e:
-      print(f"Error fetching distance matrix: {e}")
-      # return [False, origin, self.address, data]
-  
-  return returned_events
 
 # Get events (for main part of website)
 @app.route('/events', methods= ['GET'])
@@ -258,40 +224,19 @@ def get_events():
   # Max Distance
   max_distance = get_max_distance_meters(max_distance)
 
-  # Get events that meet the filter requirements
-  all_events = Event.query.filter(Event.band_type.in_(band_types),
-                              Event.event_date >= start_date,
-                              Event.event_date <= end_date).all()
+  all_event_distances = (db.session.query(EventDistance).join(Event).join(Location)
+                         .filter(Event.band_type.in_(band_types))
+                         .filter(Event.event_date >= start_date)
+                         .filter(Event.event_date <= end_date)
+                         .filter(Location.location == address)
+                         .filter(EventDistance.distance <= max_distance))
+  
   all_final_events = []
-  events_to_process = []
-  error_occurred = False
-  errors = []
-  for event in all_events:
+  for event_distance in all_event_distances:
     added = False
     for genre in genres:
-       if not added and genre in event.genres:
-          added = True
-          events_to_process.append(event)
-          if len(events_to_process) == 25:
-            all_final_events.extend(process_events(events_to_process, max_distance, address))
-            events_to_process = []
-
-  if len(events_to_process) > 0:
-    all_final_events.extend(process_events(events_to_process, max_distance, address))
-
-
-          # response = event.set_distance_data(address)
-          # if response[0] and event.distance_value <= max_distance:
-          #   event_list.append(event.get_all_details(False, False))
-          # elif not response[0]:
-          #   error_occurred = True
-          #   errors.append(response)
-
-  if error_occurred:
-    message_body = ""
-    for error in errors:
-      message_body += f"\n\nOrigin: {error[1]}\nDestination: {error[2]}\nResponse: {error[3]}"
-    EmailSender.send_error_occurred_email(f"An error occured while fetching events.\n{message_body}")
+      if not added and genre in event_distance.event.genres:
+        all_final_events.append(event_distance.event.get_all_details(False, False))
     
   # Create a row in the 'Query' table for this query.
   max_distance = request.args.get('max_distance')
