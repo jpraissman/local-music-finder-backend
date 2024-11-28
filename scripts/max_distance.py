@@ -1,13 +1,13 @@
-def get_max_distance_meters(max_distance_str):
+def get_max_distance_miles(max_distance_str):
   if max_distance_str == "5 mi":
-    return 5 * 1609
+    return 5
   elif max_distance_str == "10 mi":
-    return 10 * 1609
+    return 10
   elif max_distance_str == "20 mi":
-    return 20 * 1609
+    return 20
   elif max_distance_str == "35 mi":
-    return 35 * 1609
+    return 35
   elif max_distance_str == "50 mi":
-    return 50 * 1609
+    return 50
   elif max_distance_str == "100 mi":
-    return 100 * 1609
+    return 100

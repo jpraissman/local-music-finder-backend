@@ -1,5 +1,5 @@
 from math import radians, cos, sin, asin, sqrt
-def distance(lat1, lat2, lon1, lon2):
+def haversine_distance(lat1, lat2, lon1, lon2):
     
     # The math module contains a function named
     # radians which converts from degrees to radians.
