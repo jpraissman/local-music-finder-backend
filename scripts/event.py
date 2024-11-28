@@ -75,10 +75,9 @@ class Event(db.Model):
     except Exception as e:
       print(f"Error getting long and lat: {e}")
 
-  def set_distance_data(self, distance_formatted, distance_value, new_address):
+  def set_distance_data(self, distance_formatted, distance_value):
     self.distance_formatted = distance_formatted
     self.distance_value = distance_value
-    self.address = new_address
 
   def get_all_details(self, include_event_id, include_email_address):
     # Create event_datetime_str

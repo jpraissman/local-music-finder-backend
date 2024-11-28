@@ -233,7 +233,9 @@ def get_events():
     for genre in genres:
        if not added and genre in event.genres:
           added = True
-          if (haversine_distance(lat, event.lat, lng, event.lng) <= max_distance):
+          distance = haversine_distance(lat, event.lat, lng, event.lng)
+          if (distance <= max_distance):
+            event.set_distance_data(str(round(distance, 1)) + " mi", round(distance, 2))
             all_final_events.append(event.get_all_details(False, False))
 
   # Create a row in the 'Query' table for this query.
