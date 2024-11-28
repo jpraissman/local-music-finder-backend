@@ -19,6 +19,7 @@ import requests
 from typing import List
 import csv
 import io
+from flask_migrate import Migrate
 
 # Create important server stuff
 app = Flask(__name__)
@@ -28,6 +29,7 @@ if database_url.startswith("postgres:"):
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 CORS(app)
 executor = Executor(app)
 limiter = Limiter(app=app, 
