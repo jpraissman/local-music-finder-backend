@@ -3,7 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import time
 from scripts.date_ranges import get_date_range
-from scripts.max_distance import get_max_distance_meters
+from scripts.max_distance import get_max_distance_miles
+from scripts.haversine_distance import haversine_distance
 import random
 import string
 import os
@@ -19,6 +20,8 @@ import requests
 from typing import List
 import csv
 import io
+from flask_migrate import Migrate
+import urllib.parse
 
 # Create important server stuff
 app = Flask(__name__)
@@ -28,6 +31,7 @@ if database_url.startswith("postgres:"):
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 CORS(app)
 executor = Executor(app)
 limiter = Limiter(app=app, 
@@ -186,42 +190,6 @@ def create_event():
   
   return {'event': event.get_metadata()}
 
-def process_events(events, max_distance, origin):
-  returned_events = []
-
-  destinations = ""
-  for event in events:
-    destinations += event.address + "|"
-  url = f'https://maps.googleapis.com/maps/api/distancematrix/json?origins={origin}&destinations={destinations}&units=imperial&key={API_KEY}'
-  
-  try:
-    response = requests.get(url)
-    response.raise_for_status()  # Raise an exception for 4xx/5xx errors
-
-    data = response.json()
-    
-    # Check if the response contains valid data
-    if data['status'] == 'OK':
-      destination_addresses = data["destination_addresses"]
-      elements = data['rows'][0]['elements']
-      for index, element in enumerate(elements):
-        distance_formatted = element['distance']['text']
-        distance_value = element['distance']['value']
-        new_address = destination_addresses[index]
-        events[index].set_distance_data(distance_formatted, distance_value, new_address)
-        if distance_value <= max_distance:
-          returned_events.append(events[index].get_all_details(False, False))
-    else:
-      print(f"Error: {data['status']}")
-      # print(data)
-      # return [False, origin, self.address, data]
-
-  except Exception as e:
-      print(f"Error fetching distance matrix: {e}")
-      # return [False, origin, self.address, data]
-  
-  return returned_events
-
 # Get events (for main part of website)
 @app.route('/events', methods= ['GET'])
 def get_events():
@@ -240,43 +208,36 @@ def get_events():
   # Band Types
   band_types = band_types.split("::")
   # Max Distance
-  max_distance = get_max_distance_meters(max_distance)
+  max_distance = get_max_distance_miles(max_distance)
+
+  # Get long and lat using address
+  encoded_address = urllib.parse.quote(address)
+  url = f'https://maps.googleapis.com/maps/api/geocode/json?address={encoded_address}&key={API_KEY}'
+  try:
+    response = requests.get(url)
+    response.raise_for_status()  # Raise an exception for 4xx/5xx errors
+
+    data = response.json()["results"][0]["geometry"]["location"]
+    lat = data["lat"]
+    lng = data["lng"]
+  except Exception as e:
+    print(f"Error getting long and lat: {e}")
 
   # Get events that meet the filter requirements
   all_events = Event.query.filter(Event.band_type.in_(band_types),
                               Event.event_date >= start_date,
                               Event.event_date <= end_date).all()
   all_final_events = []
-  events_to_process = []
-  error_occurred = False
-  errors = []
   for event in all_events:
     added = False
     for genre in genres:
        if not added and genre in event.genres:
           added = True
-          events_to_process.append(event)
-          if len(events_to_process) == 25:
-            all_final_events.extend(process_events(events_to_process, max_distance, address))
-            events_to_process = []
+          distance = haversine_distance(lat, event.lat, lng, event.lng)
+          if (distance <= max_distance):
+            event.set_distance_data(str(round(distance, 1)) + " mi", round(distance, 2))
+            all_final_events.append(event.get_all_details(False, False))
 
-  if len(events_to_process) > 0:
-    all_final_events.extend(process_events(events_to_process, max_distance, address))
-
-
-          # response = event.set_distance_data(address)
-          # if response[0] and event.distance_value <= max_distance:
-          #   event_list.append(event.get_all_details(False, False))
-          # elif not response[0]:
-          #   error_occurred = True
-          #   errors.append(response)
-
-  if error_occurred:
-    message_body = ""
-    for error in errors:
-      message_body += f"\n\nOrigin: {error[1]}\nDestination: {error[2]}\nResponse: {error[3]}"
-    EmailSender.send_error_occurred_email(f"An error occured while fetching events.\n{message_body}")
-    
   # Create a row in the 'Query' table for this query.
   max_distance = request.args.get('max_distance')
   query = Query(date_range, address, max_distance, genres, band_types, from_where)

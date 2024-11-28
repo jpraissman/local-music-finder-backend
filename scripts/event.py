@@ -4,6 +4,9 @@ import requests
 import os
 import pytz
 from scripts.get_date_formatted import get_date_formatted
+import urllib.parse
+
+API_KEY = os.environ.get('API_KEY')
 
 class Event(db.Model):
   __tablename__ = 'event'
@@ -19,6 +22,8 @@ class Event(db.Model):
   start_time = db.Column(db.Time, nullable=False)
   end_time = db.Column(db.Time, nullable=True)
   address = db.Column(db.String, nullable=False)
+  lat = db.Column(db.Float, nullable=True)
+  lng = db.Column(db.Float, nullable=True)
   cover_charge = db.Column(db.Float, nullable=False)
   other_info = db.Column(db.String(250), nullable=True)
   facebook_handle = db.Column(db.String, nullable=True)
@@ -57,10 +62,22 @@ class Event(db.Model):
     self.created_time = datetime.now(pytz.timezone("US/Eastern")).time().strftime("%H:%M:%S")
     self.agrees_to_terms_and_privacy = True
 
-  def set_distance_data(self, distance_formatted, distance_value, new_address):
+    # Get long and lat using place_id
+    encoded_address = urllib.parse.quote(address)
+    url = f'https://maps.googleapis.com/maps/api/geocode/json?address={encoded_address}&key={API_KEY}'
+    try:
+      response = requests.get(url)
+      response.raise_for_status()  # Raise an exception for 4xx/5xx errors
+
+      data = response.json()["results"][0]["geometry"]["location"]
+      self.lat = data["lat"]
+      self.lng = data["lng"]
+    except Exception as e:
+      print(f"Error getting long and lat: {e}")
+
+  def set_distance_data(self, distance_formatted, distance_value):
     self.distance_formatted = distance_formatted
     self.distance_value = distance_value
-    self.address = new_address
 
   def get_all_details(self, include_event_id, include_email_address):
     # Create event_datetime_str
