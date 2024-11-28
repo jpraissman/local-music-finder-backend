@@ -15,6 +15,7 @@ for event in events:
     response.raise_for_status()  # Raise an exception for 4xx/5xx errors
 
     data = response.json()["results"][0]["geometry"]["location"]
+    print(data)
     event.lat = data["lat"]
     event.lng = data["lng"]
   except Exception as e:
