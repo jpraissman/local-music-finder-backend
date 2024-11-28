@@ -5,6 +5,8 @@ import os
 import pytz
 from scripts.get_date_formatted import get_date_formatted
 
+API_KEY = os.environ.get('API_KEY')
+
 class Event(db.Model):
   __tablename__ = 'event'
   id = db.Column(db.Integer, primary_key=True)
@@ -19,6 +21,8 @@ class Event(db.Model):
   start_time = db.Column(db.Time, nullable=False)
   end_time = db.Column(db.Time, nullable=True)
   address = db.Column(db.String, nullable=False)
+  lat = db.Column(db.Float, nullable=True)
+  lng = db.Column(db.Float, nullable=True)
   cover_charge = db.Column(db.Float, nullable=False)
   other_info = db.Column(db.String(250), nullable=True)
   facebook_handle = db.Column(db.String, nullable=True)
@@ -34,7 +38,7 @@ class Event(db.Model):
   def __init__(self, venue_name, band_name, band_type, tribute_band_name, genres, event_date, 
                start_time, end_time, address, cover_charge, other_info, facebook_handle,
                instagram_handle, website, band_or_venue, phone_number, event_id,
-               email_address):
+               email_address, place_id):
     self.venue_name = venue_name
     self.band_name = band_name
     self.band_type = band_type
@@ -56,6 +60,18 @@ class Event(db.Model):
     self.created_date = datetime.now(pytz.timezone("US/Eastern")).date().strftime("%Y-%m-%d")
     self.created_time = datetime.now(pytz.timezone("US/Eastern")).time().strftime("%H:%M:%S")
     self.agrees_to_terms_and_privacy = True
+
+    # Get long and lat using place_id
+    url = f'https://maps.googleapis.com/maps/api/geocode/json?place_id={place_id}&key={API_KEY}'
+    try:
+      response = requests.get(url)
+      response.raise_for_status()  # Raise an exception for 4xx/5xx errors
+
+      data = response.json()["results"][0]["geometry"]["location"]
+      self.lat = data["lat"]
+      self.lng = data["lng"]
+    except Exception as e:
+      print(f"Error getting long and lat: {e}")
 
   def set_distance_data(self, distance_formatted, distance_value, new_address):
     self.distance_formatted = distance_formatted

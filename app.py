@@ -162,6 +162,7 @@ def create_event():
   phone_number = request.json['phone_number']
   email_address = request.json['email_address']
   send_emails = request.json['send_emails']
+  place_id = request.json['place_id']
 
   # Generate random id
   unique_id_found = False
@@ -178,7 +179,7 @@ def create_event():
   # Create Event object and commit to the database
   event = Event(venue_name, band_name, band_type, tribute_band_name, genres, event_date, start_time, 
                 end_time, address, cover_charge, other_info, facebook_handle, instagram_handle, 
-                website, band_or_venue, phone_number, new_event_id, email_address)
+                website, band_or_venue, phone_number, new_event_id, email_address, place_id)
   db.session.add(event)
   db.session.commit()
 
