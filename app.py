@@ -21,6 +21,7 @@ from typing import List
 import csv
 import io
 from flask_migrate import Migrate
+import urllib.parse
 
 # Create important server stuff
 app = Flask(__name__)
@@ -163,7 +164,6 @@ def create_event():
   phone_number = request.json['phone_number']
   email_address = request.json['email_address']
   send_emails = request.json['send_emails']
-  place_id = request.json['place_id']
 
   # Generate random id
   unique_id_found = False
@@ -180,7 +180,7 @@ def create_event():
   # Create Event object and commit to the database
   event = Event(venue_name, band_name, band_type, tribute_band_name, genres, event_date, start_time, 
                 end_time, address, cover_charge, other_info, facebook_handle, instagram_handle, 
-                website, band_or_venue, phone_number, new_event_id, email_address, place_id)
+                website, band_or_venue, phone_number, new_event_id, email_address)
   db.session.add(event)
   db.session.commit()
 
@@ -196,7 +196,6 @@ def get_events():
   # Get filter values
   date_range = request.args.get('date_range')
   address = request.args.get('address')
-  place_id = request.args.get('place_id')
   max_distance = request.args.get('max_distance')
   genres = request.args.get('genres')
   band_types = request.args.get('band_types')
@@ -211,8 +210,9 @@ def get_events():
   # Max Distance
   max_distance = get_max_distance_miles(max_distance)
 
-  # Get long and lat using place_id
-  url = f'https://maps.googleapis.com/maps/api/geocode/json?place_id={place_id}&key={API_KEY}'
+  # Get long and lat using address
+  encoded_address = urllib.parse.quote(address)
+  url = f'https://maps.googleapis.com/maps/api/geocode/json?address={encoded_address}&key={API_KEY}'
   try:
     response = requests.get(url)
     response.raise_for_status()  # Raise an exception for 4xx/5xx errors

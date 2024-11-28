@@ -4,6 +4,7 @@ import requests
 import os
 import pytz
 from scripts.get_date_formatted import get_date_formatted
+import urllib.parse
 
 API_KEY = os.environ.get('API_KEY')
 
@@ -38,7 +39,7 @@ class Event(db.Model):
   def __init__(self, venue_name, band_name, band_type, tribute_band_name, genres, event_date, 
                start_time, end_time, address, cover_charge, other_info, facebook_handle,
                instagram_handle, website, band_or_venue, phone_number, event_id,
-               email_address, place_id):
+               email_address):
     self.venue_name = venue_name
     self.band_name = band_name
     self.band_type = band_type
@@ -62,7 +63,8 @@ class Event(db.Model):
     self.agrees_to_terms_and_privacy = True
 
     # Get long and lat using place_id
-    url = f'https://maps.googleapis.com/maps/api/geocode/json?place_id={place_id}&key={API_KEY}'
+    encoded_address = urllib.parse.quote(address)
+    url = f'https://maps.googleapis.com/maps/api/geocode/json?address={encoded_address}&key={API_KEY}'
     try:
       response = requests.get(url)
       response.raise_for_status()  # Raise an exception for 4xx/5xx errors
