@@ -248,6 +248,22 @@ def get_events():
   event_list_sorted = sorted(all_final_events, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
   return {'events': event_list_sorted}
 
+@app.route('/events/ids', methods = ['GET'])
+def get_events_by_id():
+  event_ids_raw = request.args.get('ids')
+  event_ids = event_ids_raw.split("::")
+
+  events = Event.query.filter(Event.event_id.in_(event_ids))
+  
+  events_json = []
+  for event in events:
+    event.set_distance_data("", -1)
+    events_json.append(event.get_all_details(False, False))
+
+  events_json_sorted = sorted(events_json, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
+  return {'events': events_json_sorted}
+
+
 # Get a CSV file of all the queries
 @app.route('/all-queries', methods= ['GET'])
 def get_all_queries():
