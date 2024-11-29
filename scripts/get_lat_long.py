@@ -2,14 +2,15 @@ from scripts.event import Event
 import requests
 import os
 from app import db
+import urllib.parse
 
 API_KEY = os.environ.get('API_KEY')
 
-events = Event.query.all()
+events = Event.query.filter(Event.lat == None)
 
 for event in events:
   # Get long and lat using place_id
-  url = f'https://maps.googleapis.com/maps/api/geocode/json?address={event.address}&key={API_KEY}'
+  url = f'https://maps.googleapis.com/maps/api/geocode/json?address={urllib.parse.quote(event.address)}&key={API_KEY}'
   try:
     response = requests.get(url)
     response.raise_for_status()  # Raise an exception for 4xx/5xx errors
