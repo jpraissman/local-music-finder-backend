@@ -253,7 +253,7 @@ def get_events_by_id():
   event_ids_raw = request.args.get('ids')
   event_ids = event_ids_raw.split("::")
 
-  events = Event.query.filter(Event.event_id.in_(event_ids))
+  events = Event.query.filter(Event.id.in_(event_ids))
   
   events_json = []
   for event in events:
