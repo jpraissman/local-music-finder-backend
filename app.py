@@ -22,6 +22,7 @@ import csv
 import io
 from flask_migrate import Migrate
 import urllib.parse
+from sqlalchemy import desc
 
 # Create important server stuff
 app = Flask(__name__)
@@ -132,11 +133,11 @@ def create_event_background(event: Event):
 # Create a Visit
 @app.route('/visit', methods = ['POST'])
 def create_visit():
-  path = request.json['path']
-  from_where = request.json['from_where']
-  user_id = request.json['user_id']
+  page = request.json['page']
+  from_where = request.json['from']
+  user_id = request.json['user']
 
-  visit = Visit(path, from_where, user_id)
+  visit = Visit(page, from_where, user_id)
   db.session.add(visit)
   db.session.commit()
 
@@ -275,7 +276,7 @@ def get_all_queries():
   writer.writerow(['Search Date', 'Date Range', 'Location', 'Distance',
                    'Genres', 'Band Types', 'From', 'Id'])  # CSV header
 
-  queries: List[Query] = Query.query.order_by(Query.created_at).all()
+  queries: List[Query] = Query.query.order_by(desc(Query.created_at)).all()
   for query in queries:
     writer.writerow([query.created_at, query.time_range, query.location,
                      query.distance, query.genres, query.band_types, query.from_where, query.id])
@@ -299,11 +300,11 @@ def get_all_visits():
 
   # Step 2: Use the csv writer to write to the buffer
   writer = csv.writer(csv_buffer)
-  writer.writerow(['Visit Date', 'Path', 'From', 'User'])  # CSV header
+  writer.writerow(['Visit Date', 'Page', 'From', 'User'])  # CSV header
 
-  visits: List[Visit] = Visit.query.all()
+  visits: List[Visit] = Visit.query.order_by(desc(Visit.created_at)).all()
   for visit in visits:
-    writer.writerow([visit.created_at, visit.path, visit.from_where, visit.user_id])
+    writer.writerow([visit.created_at, visit.page, visit.from_where, visit.user_id])
 
   # Step 3: Set the buffer's position to the start (so it can be read)
   csv_buffer.seek(0)
@@ -312,7 +313,7 @@ def get_all_visits():
   response = Response(csv_buffer.getvalue(), mimetype='text/csv')
 
   # Step 5: Set the content-disposition header to prompt a download
-  response.headers['Content-Disposition'] = 'attachment; filename=searches.csv'
+  response.headers['Content-Disposition'] = 'attachment; filename=visits.csv'
 
   return response
 
