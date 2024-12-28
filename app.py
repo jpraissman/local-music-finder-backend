@@ -379,6 +379,20 @@ def get_event(event_id):
     return {'event': event.get_all_details(False, False)}, 200
   except:
     return jsonify("Invalid ID"), 400
+  
+# get all events this week
+@app.route('/events/all-events-this-week', methods = ['GET'])
+def get_all_future_events():
+  start_date, end_date = get_date_range("This Week (Mon-Sun)")
+  events = Event.query.filter(Event.event_date >= start_date, 
+                              Event.event_date <= end_date)
+  
+  all_event_details = []
+  for event in events:
+    all_event_details.append(event.get_all_details(False, False))
+
+  return {'events': all_event_details}
+  
 
 # delete an event
 @app.route('/events/<event_id>', methods = ['DELETE'])
