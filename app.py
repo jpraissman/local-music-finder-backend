@@ -51,6 +51,12 @@ API_KEY = os.environ.get('API_KEY')
 class RateLimitEmailHelper:
   email_sent = False
 
+# Custom 404 error handler
+@app.errorhandler(404)
+def not_found(error):
+    # Return an empty response
+    return Response(status=200)
+
 @app.errorhandler(Exception)
 def handle_exception(e):
   print("Handling Error")
