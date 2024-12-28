@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import time
@@ -46,6 +46,7 @@ from scripts.visit import Visit
 # from scripts.user import User
 
 API_KEY = os.environ.get('API_KEY')
+ADMIN_KEY = os.environ.get('ADMIN_KEY')
 
 # Used to make helper send rate limit emails
 class RateLimitEmailHelper:
@@ -270,6 +271,46 @@ def get_events_by_id():
   events_json_sorted = sorted(events_json, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
   return {'events': events_json_sorted}
 
+# Get a CSV file of all events for admins
+@app.route('/all-events', methods= ['GET'])
+def get_all_events():
+  admin_key = request.args.get('admin_key')
+  if (admin_key != ADMIN_KEY):
+    abort(403)
+
+  # Step 1: Create an in-memory string buffer
+  csv_buffer = io.StringIO()
+
+  # Step 2: Use the csv writer to write to the buffer
+  writer = csv.writer(csv_buffer)
+  writer.writerow(['Venue', 'Band', 'Type', 'Start Time',
+                   'End Time', 'Cover Charge', 'Event Date',
+                   'Address', 'Genres', 'Tribute Band Name',
+                   'Other Info', 'Facebook', 'Instagram',
+                   'Website', "Phone", 'Band/Venue',
+                   'Email Address', 'Created Date', 'Id', 
+                   'Event Id'])  # CSV header
+
+  events: List[Event] = Event.query.order_by(desc(Event.created_date)).all()
+  for event in events:
+    writer.writerow([event.venue_name, event.band_name, event.band_type, event.start_time,
+                     event.end_time, event.cover_charge, event.event_date,
+                     event.address, event.genres, event.tribute_band_name, 
+                     event.other_info, event.facebook_handle, event.instagram_handle,
+                     event.website, event.phone_number, event.band_or_venue,
+                     event.email_address, event.created_date, event.id,
+                     event.event_id])
+
+  # Step 3: Set the buffer's position to the start (so it can be read)
+  csv_buffer.seek(0)
+
+  # Step 4: Create a Flask Response, passing the CSV data as content
+  response = Response(csv_buffer.getvalue(), mimetype='text/csv')
+
+  # Step 5: Set the content-disposition header to prompt a download
+  response.headers['Content-Disposition'] = 'attachment; filename=Events.csv'
+
+  return response
 
 # Get a CSV file of all the queries
 @app.route('/all-queries', methods= ['GET'])
