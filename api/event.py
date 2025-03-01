@@ -13,69 +13,34 @@ from app import db, executor, API_KEY, ADMIN_KEY
 
 event_bp = Blueprint('event', __name__)
 
-# Background events to run after an event is created.
+# Background event to run after an event is created.
 def create_event_background(event: Event):
-  print("Starting background events")
-  # Send email confirming event confirmation and giving Event ID
-  print("Sending Event Confirmation")
+  # Send email confirming event creation and giving Event ID
   email_1_status = EmailSender.send_event_email(event)
-  if email_1_status:
-    print("Sent")
 
-  # Send email about even confirmation to admins
-  print("Sending Admin Email")
+  # Send email about event creation to admins
   email_2_status = EmailSender.send_admin_event_email(event)
-  if email_2_status:
-    print("Sent")
 
   # Get any events with the same date and address. If there are potential duplicates, send an email
   events = Event.query.filter(Event.event_date == event.event_date,
                               Event.address == event.address).all()
-  
   email_3_status = True
   if (len(events) > 1):
-    print("Sending duplicate email")
     email_3_status = EmailSender.send_duplicate_event_email(events)
-    if email_3_status:
-      print("Sent")
 
+  # Confirm all emails were sent properly
   if (email_1_status and email_2_status and email_3_status):
-    print("Updating event to say emails were sent")
     Event.query.filter_by(event_id=event.event_id).update(dict(email_sent=True))
     db.session.commit()
-    print("Updated")
-  
-  print("Finished background stuff")
 
 # Create an Event
 @event_bp.route('/events', methods = ['POST'])
 def create_event():
-  # Get all variables from body of request
-  venue_name = request.json['venue_name']
-  band_name = request.json['band_name']
-  band_type = request.json['band_type']
-  tribute_band_name = request.json['tribute_band_name']
-  genres = request.json['genres']
-  event_date = request.json['event_date']
-  start_time = request.json['start_time']
-  end_time = request.json['end_time']
-  address = request.json['address']
-  cover_charge = request.json['cover_charge']
-  other_info = request.json['other_info']
-  facebook_handle = request.json['facebook_handle']
-  instagram_handle = request.json['instagram_handle']
-  website = request.json['website']
-  band_or_venue = request.json['band_or_venue']
-  phone_number = request.json['phone_number']
-  email_address = request.json['email_address']
-  send_emails = request.json['send_emails']
-
   # Generate random id
   unique_id_found = False
   while not unique_id_found: 
     characters = string.ascii_letters + string.digits
     new_event_id = ''.join(random.choice(characters) for _ in range(8))
-
     try:
       Event.query.filter_by(event_id=new_event_id).one()
       unique_id_found = False
@@ -83,14 +48,29 @@ def create_event():
       unique_id_found = True
 
   # Create Event object and commit to the database
-  event = Event(venue_name, band_name, band_type, tribute_band_name, genres, event_date, start_time, 
-                end_time, address, cover_charge, other_info, facebook_handle, instagram_handle, 
-                website, band_or_venue, phone_number, new_event_id, email_address)
+  event = Event(venue_name = request.json['venue_name'], 
+                band_name = request.json['band_name'], 
+                band_type = request.json['band_type'], 
+                tribute_band_name = request.json['tribute_band_name'], 
+                genres = request.json['genres'], 
+                event_date = request.json['event_date'], 
+                start_time = request.json['start_time'], 
+                end_time = request.json['end_time'],
+                address = request.json['address'],
+                cover_charge = request.json['cover_charge'], 
+                other_info = request.json['other_info'], 
+                facebook_handle = request.json['facebook_handle'], 
+                instagram_handle = request.json['instagram_handle'], 
+                website = request.json['website'], 
+                band_or_venue = request.json['band_or_venue'], 
+                phone_number = request.json['phone_number'], 
+                new_event_id = new_event_id, 
+                email_address = request.json['email_address'])
   db.session.add(event)
   db.session.commit()
 
-  # Run the background tasks of the event creation (duplicate checking and email confirmation)
-  if send_emails == "Yes":
+  # Run the background tasks
+  if request.json['send_emails'] == "Yes":
     executor.submit(create_event_background, event)
   
   return {'event': event.get_metadata()}
@@ -106,59 +86,50 @@ def get_events():
   band_types = request.args.get('band_types')
   from_where = request.args.get('from_where')
 
-  # Get Date Range
   start_date, end_date = get_date_range(date_range)
-  # Genres
   genres = genres.split("::")
-  # Band Types
   band_types = band_types.split("::")
-  # Max Distance
   max_distance = get_max_distance_miles(max_distance)
 
   # Get long and lat using address
   encoded_address = urllib.parse.quote(address)
   url = f'https://maps.googleapis.com/maps/api/geocode/json?address={encoded_address}&key={API_KEY}'
-  try:
-    response = requests.get(url)
-    response.raise_for_status()  # Raise an exception for 4xx/5xx errors
-
-    data = response.json()["results"][0]["geometry"]["location"]
-    lat = data["lat"]
-    lng = data["lng"]
-  except Exception as e:
-    print(f"Error getting long and lat: {e}")
+  response = requests.get(url)
+  response.raise_for_status()
+  data = response.json()["results"][0]["geometry"]["location"]
+  lat = data["lat"]
+  lng = data["lng"]
 
   # Get events that meet the filter requirements
-  all_events = Event.query.filter(Event.band_type.in_(band_types),
-                              Event.event_date >= start_date,
-                              Event.event_date <= end_date).all()
-  all_final_events = []
-  for event in all_events:
-    added = False
+  potential_events = Event.query.filter(Event.band_type.in_(band_types),
+                                        Event.event_date >= start_date,
+                                        Event.event_date <= end_date).all()
+  final_events = []
+  for potential_event in potential_events:
     for genre in genres:
-       if not added and genre in event.genres:
-          added = True
-          distance = haversine_distance(lat, event.lat, lng, event.lng)
+       if genre in potential_event.genres:
+          distance = haversine_distance(lat, potential_event.lat, lng, potential_event.lng)
           if (distance <= max_distance):
-            event.set_distance_data(str(round(distance, 1)) + " mi", round(distance, 2))
-            all_final_events.append(event.get_all_details(False, False))
+            potential_event.set_distance_data(str(round(distance, 1)) + " mi", round(distance, 2))
+            final_events.append(potential_event.get_all_details(False, False))
+          break
 
   # Create a row in the 'Query' table for this query.
-  max_distance = request.args.get('max_distance')
-  query = Query(date_range, address, max_distance, genres, band_types, from_where)
+  max_distance_orig = request.args.get('max_distance')
+  query = Query(date_range, address, max_distance_orig, genres, band_types, from_where)
   db.session.add(query)
   db.session.commit()
 
   # Sort the event_list by event_datetime
-  event_list_sorted = sorted(all_final_events, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
+  event_list_sorted = sorted(final_events, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
   return {'events': event_list_sorted}
 
+# Get events with the given ids
 @event_bp.route('/events/ids', methods = ['GET'])
 def get_events_by_id():
-  event_ids_raw = request.args.get('ids')
-  event_ids = event_ids_raw.split("::")
+  ids = request.args.get('ids').split("::")
 
-  events = Event.query.filter(Event.id.in_(event_ids))
+  events = Event.query.filter(Event.id.in_(ids))
   
   events_json = []
   for event in events:
