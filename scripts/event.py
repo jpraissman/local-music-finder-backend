@@ -35,7 +35,7 @@ class Event(db.Model):
   email_address = db.Column(db.String, nullable=False)
   email_sent = db.Column(db.Boolean, nullable=False, default=False)
   agrees_to_terms_and_privacy = db.Column(db.Boolean, nullable=False)
-  county = db.Column(db.String, nullable=False)
+  county = db.Column(db.String, nullable=True)
   
   def __init__(self, venue_name, band_name, band_type, tribute_band_name, genres, event_date, 
                start_time, end_time, address, cover_charge, other_info, facebook_handle,
