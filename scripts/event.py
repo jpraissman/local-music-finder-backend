@@ -35,7 +35,7 @@ class Event(db.Model):
   email_address = db.Column(db.String, nullable=False)
   email_sent = db.Column(db.Boolean, nullable=False, default=False)
   agrees_to_terms_and_privacy = db.Column(db.Boolean, nullable=False)
-  county = db.Column(db.String, nullable=True)
+  county = db.Column(db.String, nullable=False)
   
   def __init__(self, venue_name, band_name, band_type, tribute_band_name, genres, event_date, 
                start_time, end_time, address, cover_charge, other_info, facebook_handle,
@@ -70,9 +70,17 @@ class Event(db.Model):
       response = requests.get(url)
       response.raise_for_status()  # Raise an exception for 4xx/5xx errors
 
-      data = response.json()["results"][0]["geometry"]["location"]
-      self.lat = data["lat"]
-      self.lng = data["lng"]
+      # Get long and lat
+      geo_data = response.json()["results"][0]["geometry"]["location"]
+      self.lat = geo_data["lat"]
+      self.lng = geo_data["lng"]
+
+      # Get county
+      address_components = response.json()["results"][0]["address_components"]
+      for component in address_components:
+        if component['types'][0] == 'administrative_area_level_2':
+          self.county = component['long_name']
+
     except Exception as e:
       print(f"Error getting long and lat: {e}")
 

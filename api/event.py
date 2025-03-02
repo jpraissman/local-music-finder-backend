@@ -153,7 +153,7 @@ def get_all_events():
   writer = csv.writer(csv_buffer)
   writer.writerow(['Venue', 'Band', 'Type', 'Start Time',
                    'End Time', 'Cover Charge', 'Event Date',
-                   'Address', 'Genres', 'Tribute Band Name',
+                   'Address', 'County', 'Genres', 'Tribute Band Name',
                    'Other Info', 'Facebook', 'Instagram',
                    'Website', "Phone", 'Band/Venue',
                    'Email Address', 'Created Date', 'Id', 
@@ -163,7 +163,7 @@ def get_all_events():
   for event in events:
     writer.writerow([event.venue_name, event.band_name, event.band_type, event.start_time,
                      event.end_time, event.cover_charge, event.event_date,
-                     event.address, event.genres, event.tribute_band_name, 
+                     event.address, event.county, event.genres, event.tribute_band_name, 
                      event.other_info, event.facebook_handle, event.instagram_handle,
                      event.website, event.phone_number, event.band_or_venue,
                      event.email_address, event.created_date, event.id,
