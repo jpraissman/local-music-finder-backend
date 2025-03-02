@@ -129,6 +129,7 @@ class Event(db.Model):
       "created_datetime": created_datetime_str,
       "event_datetime": event_datetime_str,
       "event_id": self.event_id if include_event_id else "Restricted",
+      "county": self.county
     }
   
   def get_metadata(self):

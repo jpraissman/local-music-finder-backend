@@ -230,6 +230,23 @@ def get_event(event_id):
     return {'event': event.get_all_details(False, False)}, 200
   except:
     return jsonify("Invalid ID"), 400
+
+# Get all events in the next 30 days in the given county 
+@event_bp.route('/events/county/<county_name>', methods = ['GET'])
+def get_events_by_county(county_name):
+  start_date, end_date = get_date_range('Next 30 Days')
+  events = Event.query.filter(Event.county == county_name,
+                              Event.event_date >= start_date,
+                              Event.event_date <= end_date)
+  
+  events_json = []
+  for event in events:
+    event.set_distance_data("", -1)
+    events_json.append(event.get_all_details(False, False))
+
+  events_json_sorted = sorted(events_json, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
+  return {'events': events_json_sorted}
+
   
 # get all events this week
 @event_bp.route('/events/all-events-this-week', methods = ['GET'])
