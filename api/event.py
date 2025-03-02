@@ -64,7 +64,7 @@ def create_event():
                 website = request.json['website'], 
                 band_or_venue = request.json['band_or_venue'], 
                 phone_number = request.json['phone_number'], 
-                new_event_id = new_event_id, 
+                event_id = new_event_id, 
                 email_address = request.json['email_address'])
   db.session.add(event)
   db.session.commit()
