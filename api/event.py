@@ -259,7 +259,8 @@ def get_all_future_events():
   for event in events:
     all_event_details.append(event.get_all_details(False, False))
 
-  return {'events': all_event_details}
+  events_json_sorted = sorted(all_event_details, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
+  return {'events': events_json_sorted}
   
 
 # delete an event
