@@ -136,6 +136,10 @@ def get_events_by_id():
     event.set_distance_data("", -1)
     events_json.append(event.get_all_details(False, False))
 
+  query = Query("Specific IDs Link", ids, "", "", "", "")
+  db.session.add(query)
+  db.session.commit()
+
   events_json_sorted = sorted(events_json, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
   return {'events': events_json_sorted}
 
@@ -244,6 +248,10 @@ def get_events_by_county(county_name):
     event.set_distance_data("", -1)
     events_json.append(event.get_all_details(False, False))
 
+  query = Query("County Link", county_name, "", "", "", "")
+  db.session.add(query)
+  db.session.commit()
+
   events_json_sorted = sorted(events_json, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
   return {'events': events_json_sorted}
 
@@ -258,6 +266,10 @@ def get_all_future_events():
   all_event_details = []
   for event in events:
     all_event_details.append(event.get_all_details(False, False))
+
+  query = Query("All NJ Events", "", "", "", "", "")
+  db.session.add(query)
+  db.session.commit()
 
   events_json_sorted = sorted(all_event_details, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
   return {'events': events_json_sorted}
