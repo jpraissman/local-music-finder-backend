@@ -236,10 +236,12 @@ def get_event(event_id):
     return jsonify("Invalid ID"), 400
 
 # Get all events in the next 30 days in the given county 
-@event_bp.route('/events/county/<county_name>', methods = ['GET'])
-def get_events_by_county(county_name):
+@event_bp.route('/events/county/<county_names>', methods = ['GET'])
+def get_events_by_county(county_names):
+  county_names_split = county_names.split("::")
+  
   start_date, end_date = get_date_range('Next 30 Days')
-  events = Event.query.filter(Event.county == county_name,
+  events = Event.query.filter(Event.county.in_(county_names_split),
                               Event.event_date >= start_date,
                               Event.event_date <= end_date)
   
@@ -248,7 +250,7 @@ def get_events_by_county(county_name):
     event.set_distance_data("", -1)
     events_json.append(event.get_all_details(False, False))
 
-  query = Query("County Link", county_name, "", "", "", "")
+  query = Query("County Link", county_names_split, "", "", "", "")
   db.session.add(query)
   db.session.commit()
 
