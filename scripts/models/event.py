@@ -13,29 +13,45 @@ class Event(db.Model):
   id = db.Column(db.Integer, primary_key=True)
   created_date = db.Column(db.Date, nullable=False)
   created_time = db.Column(db.Time, nullable=False)
+
+  # For Venue - to delete later
   venue_name = db.Column(db.String(50), nullable=False)
-  band_name = db.Column(db.String(50), nullable=False)
-  band_type = db.Column(db.String, nullable=False)
-  tribute_band_name = db.Column(db.String, nullable=False)
-  genres = db.Column(db.ARRAY(db.String), nullable=False)
-  event_date = db.Column(db.Date, nullable=False)
-  start_time = db.Column(db.Time, nullable=False)
-  end_time = db.Column(db.Time, nullable=True)
   address = db.Column(db.String, nullable=False)
   lat = db.Column(db.Float, nullable=False)
   lng = db.Column(db.Float, nullable=False)
-  cover_charge = db.Column(db.Float, nullable=False)
-  other_info = db.Column(db.String(250), nullable=True)
+  county = db.Column(db.String, nullable=True)
+
+  # For Band - to delete later
+  band_name = db.Column(db.String(50), nullable=False)
+
+  
+  band_type = db.Column(db.String, nullable=False)
+  tribute_band_name = db.Column(db.String, nullable=False)
+  genres = db.Column(db.ARRAY(db.String), nullable=False)
+
+  
   facebook_handle = db.Column(db.String, nullable=True)
   instagram_handle = db.Column(db.String, nullable=True)
   website = db.Column(db.String, nullable=True)
-  band_or_venue = db.Column(db.String, nullable=True)
   phone_number = db.Column(db.String, nullable=True)
-  event_id = db.Column(db.String, nullable=False)
   email_address = db.Column(db.String, nullable=False)
+  event_date = db.Column(db.Date, nullable=False)
+  start_time = db.Column(db.Time, nullable=False)
+  end_time = db.Column(db.Time, nullable=True)
+  cover_charge = db.Column(db.Float, nullable=False)
+  other_info = db.Column(db.String(250), nullable=True)
+  band_or_venue = db.Column(db.String, nullable=True)
+  event_id = db.Column(db.String, nullable=False)
   email_sent = db.Column(db.Boolean, nullable=False, default=False)
   agrees_to_terms_and_privacy = db.Column(db.Boolean, nullable=False)
-  county = db.Column(db.String, nullable=True)
+  
+
+
+  venue_id = db.Column(db.Integer, db.ForeignKey("venue.id"))
+  venue = db.relationship("Venue", back_populates=False)
+
+  band_id = db.Column(db.Integer, db.ForeignKey("band.id"))
+  band = db.relationship("Band", back_populates=False)
   
   def __init__(self, venue_name, band_name, band_type, tribute_band_name, genres, event_date, 
                start_time, end_time, address, cover_charge, other_info, facebook_handle,

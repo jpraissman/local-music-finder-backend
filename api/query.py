@@ -1,7 +1,7 @@
 from flask import Blueprint, Response
 from typing import List
 from sqlalchemy import desc
-from scripts.query import Query
+from scripts.models.query import Query
 import io, csv
 
 query_bp = Blueprint('query', __name__)

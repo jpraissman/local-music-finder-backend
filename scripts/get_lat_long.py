@@ -1,4 +1,4 @@
-from scripts.event import Event
+from scripts.models.event import Event
 import requests
 import os
 from app import db

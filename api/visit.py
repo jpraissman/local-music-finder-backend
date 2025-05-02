@@ -3,7 +3,7 @@ import csv, io
 from typing import List
 from sqlalchemy import desc
 from app import db
-from scripts.visit import Visit
+from scripts.models.visit import Visit
 
 visit_bp = Blueprint('visit', __name__)
 
