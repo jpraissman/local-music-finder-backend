@@ -13,4 +13,11 @@ class Band(db.Model):
   tribute_band_name: str = db.Column(db.String, nullable=False)
   genres: list[str] = db.Column(db.ARRAY(db.String), nullable=False)
 
+  def __init__(self, band_name: str, band_type: str, tribute_band_name: str, genres: list[str]):
+    self.band_name = band_name
+    self.band_type = band_type
+    self.tribute_band_name = tribute_band_name
+    self.genres = genres
+    
+
 
