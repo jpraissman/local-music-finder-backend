@@ -7,9 +7,10 @@ import scripts.send_emails as EmailSender
 from datetime import datetime
 from typing import List
 from sqlalchemy import desc
-from scripts.event import Event
-from scripts.query import Query
+from scripts.models.event import Event
+from scripts.models.query import Query
 from app import db, executor, API_KEY, ADMIN_KEY
+import time
 
 event_bp = Blueprint('event', __name__)
 

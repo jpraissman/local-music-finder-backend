@@ -35,6 +35,13 @@ app.register_blueprint(event_bp)
 app.register_blueprint(query_bp)
 app.register_blueprint(visit_bp)
 
+# Import database models so they are seen
+from scripts.models.band import Band
+from scripts.models.event import Event
+from scripts.models.query import Query
+from scripts.models.venue import Venue
+from scripts.models.visit import Visit
+
 # Used to make helper send rate limit emails
 class RateLimitEmailHelper:
   email_sent = False
