@@ -10,7 +10,6 @@ from sqlalchemy import desc
 from scripts.models.event import Event
 from scripts.models.query import Query
 from app import db, executor, API_KEY, ADMIN_KEY
-import time
 
 event_bp = Blueprint('event', __name__)
 
