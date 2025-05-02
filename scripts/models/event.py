@@ -56,7 +56,7 @@ class Event(db.Model):
   def __init__(self, venue_name, band_name, band_type, tribute_band_name, genres, event_date, 
                start_time, end_time, address, cover_charge, other_info, facebook_handle,
                instagram_handle, website, band_or_venue, phone_number, event_id,
-               email_address):
+               email_address, venue_id, band_id):
     self.venue_name = venue_name
     self.band_name = band_name
     self.band_type = band_type
@@ -78,6 +78,8 @@ class Event(db.Model):
     self.created_date = datetime.now(pytz.timezone("US/Eastern")).date().strftime("%Y-%m-%d")
     self.created_time = datetime.now(pytz.timezone("US/Eastern")).time().strftime("%H:%M:%S")
     self.agrees_to_terms_and_privacy = True
+    self.venue_id = venue_id
+    self.band_id = band_id
 
     # Get long and lat using place_id
     encoded_address = urllib.parse.quote(address)

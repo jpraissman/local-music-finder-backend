@@ -9,6 +9,8 @@ from typing import List
 from sqlalchemy import desc
 from scripts.models.event import Event
 from scripts.models.query import Query
+from scripts.models.venue import Venue
+from scripts.models.band import Band
 from app import db, executor, API_KEY, ADMIN_KEY
 
 event_bp = Blueprint('event', __name__)
@@ -47,6 +49,28 @@ def create_event():
     except:
       unique_id_found = True
 
+  # Lookup related venue
+  related_venues: list[Venue] = Venue.query.filter_by(venue_name=request.json['venue_name'])
+  if related_venues.count() == 0:
+    # Create a venue
+    related_venue = Venue(venue_name=request.json['venue_name'], address=request.json['address'], 
+                  lat=0, lng=0, county="PLACEHOLDER")
+    db.session.add(related_venue)
+    db.session.commit()
+  else:
+    related_venue = related_venues[0]
+
+  # Lookup related band
+  related_bands: list[Band] = Band.query.filter_by(band_name=request.json['band_name'])
+  if related_bands.count() == 0:
+    # Create the band
+    related_band = Band(band_name=request.json['band_name'], band_type=request.json['band_type'], 
+                tribute_band_name=request.json['tribute_band_name'], genres=request.json['genres'])
+    db.session.add(related_band)
+    db.session.commit()
+  else:
+    related_band = related_bands[0]
+
   # Create Event object and commit to the database
   event = Event(venue_name = request.json['venue_name'], 
                 band_name = request.json['band_name'], 
@@ -65,7 +89,9 @@ def create_event():
                 band_or_venue = request.json['band_or_venue'], 
                 phone_number = request.json['phone_number'], 
                 event_id = new_event_id, 
-                email_address = request.json['email_address'])
+                email_address = request.json['email_address'],
+                venue_id=related_venue.id,
+                band_id=related_band.id)
   db.session.add(event)
   db.session.commit()
 
