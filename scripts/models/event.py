@@ -47,10 +47,10 @@ class Event(db.Model):
   
 
 
-  venue_id = db.Column(db.Integer, db.ForeignKey("venue.id"))
+  venue_id = db.Column(db.Integer, db.ForeignKey("venue.id"), nullable=False)
   venue = db.relationship("Venue", back_populates=False)
 
-  band_id = db.Column(db.Integer, db.ForeignKey("band.id"))
+  band_id = db.Column(db.Integer, db.ForeignKey("band.id"), nullable=False)
   band = db.relationship("Band", back_populates=False)
   
   def __init__(self, venue_name, band_name, band_type, tribute_band_name, genres, event_date, 
