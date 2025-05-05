@@ -119,11 +119,6 @@ class Event(db.Model):
 
 # Takes in input from the event POST or PUT request and returns a formatted version of the input
 def format_event_input(request: Request):
-  # Format end time
-  end_time = request.json['eventEndTime']
-  if not end_time == None:
-    end_time = datetime.fromisoformat(end_time.replace("Z", "+00:00")).strftime("%H:%M")
-
   # Format cover charge
   cover_charge = request.json['coverCharge']
   if cover_charge == "":
@@ -137,9 +132,9 @@ def format_event_input(request: Request):
     "band_type": request.json["bandType"],
     "tribute_band_name": request.json["tributeBandName"] if request.json["bandType"] == "Tribute Band" else "",
     "genres": request.json["genres"],
-    "event_date": datetime.fromisoformat(request.json['eventDate'].replace("Z", "+00:00")).strftime("%Y-%m-%d"),
-    "start_time": datetime.fromisoformat(request.json['eventStartTime'].replace("Z", "+00:00")).strftime("%H:%M"),
-    "end_time": end_time,
+    "event_date": request.json['eventDate'],
+    "start_time": request.json['eventStartTime'],
+    "end_time": request.json['eventEndTime'],
     "cover_charge": cover_charge,
     "other_info": request.json['otherInfo'],
     "website": request.json['website'],
