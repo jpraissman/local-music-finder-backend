@@ -1,12 +1,16 @@
 from app import db
+import requests, os
+from scripts.models.event import Event
+from flask import abort
+from sqlalchemy.orm import Mapped
+
+API_KEY = os.environ.get('API_KEY')
 
 class Venue(db.Model):
   __tablename__ = "venue"
 
   id: int = db.Column(db.Integer, primary_key=True)
-  events = db.relationship("Event", back_populates="venue", cascade="all, delete-orphan")
-
-  # Represent the most recent values
+  events: Mapped[list[Event]] = db.relationship("Event", back_populates="venue", cascade="all, delete-orphan")
   venue_name: str = db.Column(db.String(50), nullable=False)
   address: str = db.Column(db.String, nullable=False)
   lat: float = db.Column(db.Float, nullable=False)
@@ -14,9 +18,29 @@ class Venue(db.Model):
   county: str = db.Column(db.String, nullable=False)
   place_id : str = db.Column(db.String, nullable=True)
 
-  def __init__(self, venue_name: str, address: str, lat: float, lng: float, county: str):
+  def __init__(self, venue_name: str, place_id: str):
     self.venue_name = venue_name
-    self.address = address
-    self.lat = lat
-    self.lng = lng
-    self.county = county
+    self.place_id = place_id
+
+    # Get long, lat, county, and formatted_address using the given place_id
+    url = f'https://maps.googleapis.com/maps/api/geocode/json?place_id={place_id}&key={API_KEY}'
+    try:
+      response = requests.get(url)
+      response.raise_for_status()  # Raise an exception for 4xx/5xx errors
+
+      # Get long and lat
+      geo_data = response.json()["results"][0]["geometry"]["location"]
+      self.lat = geo_data["lat"]
+      self.lng = geo_data["lng"]
+
+      # Get county
+      address_components = response.json()["results"][0]["address_components"]
+      for component in address_components:
+        if component['types'][0] == 'administrative_area_level_2':
+          self.county = component['long_name']
+      
+      # Get address
+      self.address = response.json()["results"][0]["formatted_address"]
+
+    except Exception as e:
+      abort(500)
