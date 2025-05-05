@@ -128,7 +128,7 @@ def format_event_input(request: Request):
   cover_charge = request.json['coverCharge']
   if cover_charge == "":
     cover_charge = "0"
-  cover_charge = int(cover_charge)
+  cover_charge = float(cover_charge)
 
   formatted_input = {
     "venue_name": request.json["venueName"],
