@@ -5,7 +5,6 @@ class Band(db.Model):
 
   id: int = db.Column(db.Integer, primary_key=True)
   events = db.relationship("Event", back_populates="band", cascade="all, delete-orphan")
-
   band_name: str = db.Column(db.String(50), nullable=False)
 
   # These represent the most recent values for this band (for auto-populating purposes)
@@ -18,6 +17,3 @@ class Band(db.Model):
     self.band_type = band_type
     self.tribute_band_name = tribute_band_name
     self.genres = genres
-    
-
-

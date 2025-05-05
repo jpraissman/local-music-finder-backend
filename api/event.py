@@ -2,104 +2,19 @@ from flask import Blueprint, request, jsonify, Response, abort
 from scripts.date_ranges import get_date_range
 from scripts.max_distance import get_max_distance_miles
 from scripts.haversine_distance import haversine_distance
-import random, string, requests, csv, io, urllib.parse
+import requests, csv, io, urllib.parse
 import scripts.send_emails as EmailSender 
 from datetime import datetime
 from typing import List
 from sqlalchemy import desc
-from scripts.models.event import Event
+from scripts.models.event import Event, format_event_input
 from scripts.models.query import Query
 from scripts.models.venue import Venue
 from scripts.models.band import Band
-from app import db, executor, API_KEY, ADMIN_KEY
+from app import db, API_KEY, ADMIN_KEY
+from scripts.generate_event_id import generate_event_id
 
 event_bp = Blueprint('event', __name__)
-
-# Background event to run after an event is created.
-def create_event_background(event: Event):
-  # Send email confirming event creation and giving Event ID
-  email_1_status = EmailSender.send_event_email(event)
-
-  # Send email about event creation to admins
-  email_2_status = EmailSender.send_admin_event_email(event)
-
-  # Get any events with the same date and address. If there are potential duplicates, send an email
-  events = Event.query.filter(Event.event_date == event.event_date,
-                              Event.address == event.address).all()
-  email_3_status = True
-  if (len(events) > 1):
-    email_3_status = EmailSender.send_duplicate_event_email(events)
-
-  # Confirm all emails were sent properly
-  if (email_1_status and email_2_status and email_3_status):
-    Event.query.filter_by(event_id=event.event_id).update(dict(email_sent=True))
-    db.session.commit()
-
-# Create an Event
-@event_bp.route('/events', methods = ['POST'])
-def create_event():
-  # Generate random id
-  unique_id_found = False
-  while not unique_id_found: 
-    characters = string.ascii_letters + string.digits
-    new_event_id = ''.join(random.choice(characters) for _ in range(8))
-    try:
-      Event.query.filter_by(event_id=new_event_id).one()
-      unique_id_found = False
-    except:
-      unique_id_found = True
-
-  # Lookup related venue
-  related_venues: list[Venue] = Venue.query.filter_by(venue_name=request.json['venue_name'])
-  if related_venues.count() == 0:
-    # Create a venue
-    related_venue = Venue(venue_name=request.json['venue_name'], address=request.json['address'], 
-                  lat=0, lng=0, county="PLACEHOLDER")
-    db.session.add(related_venue)
-    db.session.commit()
-  else:
-    related_venue = related_venues[0]
-
-  # Lookup related band
-  related_bands: list[Band] = Band.query.filter_by(band_name=request.json['band_name'])
-  if related_bands.count() == 0:
-    # Create the band
-    related_band = Band(band_name=request.json['band_name'], band_type=request.json['band_type'], 
-                tribute_band_name=request.json['tribute_band_name'], genres=request.json['genres'])
-    db.session.add(related_band)
-    db.session.commit()
-  else:
-    related_band = related_bands[0]
-
-  # Create Event object and commit to the database
-  event = Event(venue_name = request.json['venue_name'], 
-                band_name = request.json['band_name'], 
-                band_type = request.json['band_type'], 
-                tribute_band_name = request.json['tribute_band_name'], 
-                genres = request.json['genres'], 
-                event_date = request.json['event_date'], 
-                start_time = request.json['start_time'], 
-                end_time = request.json['end_time'],
-                address = request.json['address'],
-                cover_charge = request.json['cover_charge'], 
-                other_info = request.json['other_info'], 
-                facebook_handle = request.json['facebook_handle'], 
-                instagram_handle = request.json['instagram_handle'], 
-                website = request.json['website'], 
-                band_or_venue = request.json['band_or_venue'], 
-                phone_number = request.json['phone_number'], 
-                event_id = new_event_id, 
-                email_address = request.json['email_address'],
-                venue_id=related_venue.id,
-                band_id=related_band.id)
-  db.session.add(event)
-  db.session.commit()
-
-  # Run the background tasks
-  if request.json['send_emails'] == "Yes":
-    executor.submit(create_event_background, event)
-  
-  return {'event': event.get_metadata()}
 
 # Get events (for main part of website)
 @event_bp.route('/events', methods= ['GET'])
@@ -134,7 +49,7 @@ def get_events():
   for potential_event in potential_events:
     for genre in genres:
        if genre in potential_event.genres:
-          distance = haversine_distance(lat, potential_event.lat, lng, potential_event.lng)
+          distance = haversine_distance(lat, potential_event.venue.lat, lng, potential_event.venue.lng)
           if (distance <= max_distance):
             potential_event.set_distance_data(str(round(distance, 1)) + " mi", round(distance, 2))
             final_events.append(potential_event.get_all_details(False, False))
@@ -191,9 +106,9 @@ def get_all_events():
 
   events: List[Event] = Event.query.order_by(desc(Event.created_date)).all()
   for event in events:
-    writer.writerow([event.venue_name, event.band_name, event.band_type, event.start_time,
+    writer.writerow([event.venue.venue_name, event.band_name, event.band_type, event.start_time,
                      event.end_time, event.cover_charge, event.event_date,
-                     event.address, event.county, event.genres, event.tribute_band_name, 
+                     event.venue.address, event.venue.county, event.genres, event.tribute_band_name, 
                      event.other_info, event.facebook_handle, event.instagram_handle,
                      event.website, event.phone_number, event.band_or_venue,
                      event.email_address, event.created_date, event.id,
@@ -257,7 +172,7 @@ def get_events_admin():
 def get_event(event_id):
   try:
     event = Event.query.filter_by(event_id=event_id).one()
-    return {'event': event.get_all_details(False, False)}, 200
+    return jsonify(event.get_all_details(True, True))
   except:
     return jsonify("Invalid ID"), 400
 
@@ -301,45 +216,6 @@ def get_all_future_events():
 
   events_json_sorted = sorted(all_event_details, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
   return {'events': events_json_sorted}
-  
-
-# delete an event
-@event_bp.route('/events/<event_id>', methods = ['DELETE'])
-def delete_event(event_id):
-  event = Event.query.filter_by(event_id=event_id).one()
-  db.session.delete(event)
-  db.session.commit()
-  return f'Event (id: {event_id}) deleted!'
-
-# edit an event
-@event_bp.route('/events/<event_id>', methods = ['PUT'])
-def update_event(event_id):
-  event = Event.query.filter_by(event_id=event_id)
-
-  venue_name = request.json['venue_name']
-  band_name = request.json['band_name']
-  band_type = request.json['band_type']
-  tribute_band_name = request.json['tribute_band_name']
-  genres = request.json['genres']
-  event_date = request.json['event_date']
-  start_time = request.json['start_time']
-  end_time = request.json['end_time']
-  address = request.json['address']
-  cover_charge = request.json['cover_charge']
-  other_info = request.json['other_info']
-  facebook_handle = request.json['facebook_handle']
-  instagram_handle = request.json['instagram_handle']
-  website = request.json['website']
-  band_or_venue = request.json['band_or_venue']
-  phone_number = request.json['phone_number']
-  event.update(dict(venue_name = venue_name, band_name = band_name, band_type = band_type,
-                    tribute_band_name = tribute_band_name, genres = genres, event_date = event_date,
-                    start_time = start_time, end_time = end_time, address = address,
-                    cover_charge = cover_charge, other_info = other_info, facebook_handle = facebook_handle,
-                    instagram_handle = instagram_handle, website = website, band_or_venue = band_or_venue,
-                    phone_number = phone_number))
-  db.session.commit()
-  return f'Event (id: {event_id}) updated!'
 
 # Get events whose email has not been sent (for admin site)
 @event_bp.route('/email-errors', methods= ['GET'])

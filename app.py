@@ -4,10 +4,10 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import time
 import os, json, time, traceback
-import scripts.send_emails as EmailSender
 from flask_executor import Executor
 from flask_limiter import Limiter
 from flask_migrate import Migrate
+import scripts.send_emails as EmailSender
 
 # Important server stuff
 app = Flask(__name__)
@@ -30,10 +30,16 @@ ADMIN_KEY = os.environ.get('ADMIN_KEY')
 from api.event import event_bp
 from api.query import query_bp
 from api.visit import visit_bp
+from api.venue import venue_bp
+from api.band import band_bp
+from api.event_modify import event_modify_bp
 
 app.register_blueprint(event_bp)
 app.register_blueprint(query_bp)
 app.register_blueprint(visit_bp)
+app.register_blueprint(venue_bp)
+app.register_blueprint(band_bp)
+app.register_blueprint(event_modify_bp)
 
 # Import database models so they are seen
 from scripts.models.band import Band

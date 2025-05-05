@@ -1,35 +1,18 @@
 from app import db
 from datetime import datetime
-import requests
-import os
 import pytz
 from scripts.get_date_formatted import get_date_formatted
-import urllib.parse
-
-API_KEY = os.environ.get('API_KEY')
+from flask import Request
 
 class Event(db.Model):
   __tablename__ = 'event'
   id = db.Column(db.Integer, primary_key=True)
   created_date = db.Column(db.Date, nullable=False)
   created_time = db.Column(db.Time, nullable=False)
-
-  # For Venue - to delete later
-  venue_name = db.Column(db.String(50), nullable=False)
-  address = db.Column(db.String, nullable=False)
-  lat = db.Column(db.Float, nullable=False)
-  lng = db.Column(db.Float, nullable=False)
-  county = db.Column(db.String, nullable=True)
-
-  # For Band - to delete later
   band_name = db.Column(db.String(50), nullable=False)
-
-  
   band_type = db.Column(db.String, nullable=False)
   tribute_band_name = db.Column(db.String, nullable=False)
   genres = db.Column(db.ARRAY(db.String), nullable=False)
-
-  
   facebook_handle = db.Column(db.String, nullable=True)
   instagram_handle = db.Column(db.String, nullable=True)
   website = db.Column(db.String, nullable=True)
@@ -44,20 +27,15 @@ class Event(db.Model):
   event_id = db.Column(db.String, nullable=False)
   email_sent = db.Column(db.Boolean, nullable=False, default=False)
   agrees_to_terms_and_privacy = db.Column(db.Boolean, nullable=False)
-  
-
-
   venue_id = db.Column(db.Integer, db.ForeignKey("venue.id"), nullable=False)
   venue = db.relationship("Venue", back_populates=False)
-
   band_id = db.Column(db.Integer, db.ForeignKey("band.id"), nullable=False)
   band = db.relationship("Band", back_populates=False)
   
-  def __init__(self, venue_name, band_name, band_type, tribute_band_name, genres, event_date, 
-               start_time, end_time, address, cover_charge, other_info, facebook_handle,
+  def __init__(self, band_name, band_type, tribute_band_name, genres, event_date, 
+               start_time, end_time, cover_charge, other_info, facebook_handle,
                instagram_handle, website, band_or_venue, phone_number, event_id,
                email_address, venue_id, band_id):
-    self.venue_name = venue_name
     self.band_name = band_name
     self.band_type = band_type
     self.tribute_band_name = tribute_band_name
@@ -65,7 +43,6 @@ class Event(db.Model):
     self.event_date = event_date
     self.start_time = start_time
     self.end_time = end_time
-    self.address = address
     self.cover_charge = cover_charge
     self.other_info = other_info
     self.facebook_handle = facebook_handle
@@ -80,27 +57,6 @@ class Event(db.Model):
     self.agrees_to_terms_and_privacy = True
     self.venue_id = venue_id
     self.band_id = band_id
-
-    # Get long and lat using place_id
-    encoded_address = urllib.parse.quote(address)
-    url = f'https://maps.googleapis.com/maps/api/geocode/json?address={encoded_address}&key={API_KEY}'
-    try:
-      response = requests.get(url)
-      response.raise_for_status()  # Raise an exception for 4xx/5xx errors
-
-      # Get long and lat
-      geo_data = response.json()["results"][0]["geometry"]["location"]
-      self.lat = geo_data["lat"]
-      self.lng = geo_data["lng"]
-
-      # Get county
-      address_components = response.json()["results"][0]["address_components"]
-      for component in address_components:
-        if component['types'][0] == 'administrative_area_level_2':
-          self.county = component['long_name']
-
-    except Exception as e:
-      print(f"Error getting long and lat: {e}")
 
   def set_distance_data(self, distance_formatted, distance_value):
     self.distance_formatted = distance_formatted
@@ -122,7 +78,7 @@ class Event(db.Model):
 
     return {
       "id": self.id,
-      "venue_name": self.venue_name,
+      "venue_name": self.venue.venue_name,
       "band_name": self.band_name,
       "band_type": self.band_type,
       "start_time_formatted": self.start_time.strftime("%#I:%M %p"),
@@ -130,7 +86,7 @@ class Event(db.Model):
       "cover_charge": self.cover_charge,
       "date_formatted": get_date_formatted(self.event_date),
       "distance_formatted": self.distance_formatted if hasattr(self, "distance_formatted") else "",
-      "address": self.address if hasattr(self, "address") else "",
+      "address": self.venue.address,
       "genres": self.genres,
       "tribute_band_name": self.tribute_band_name,
       "other_info": self.other_info,
@@ -147,7 +103,8 @@ class Event(db.Model):
       "created_datetime": created_datetime_str,
       "event_datetime": event_datetime_str,
       "event_id": self.event_id if include_event_id else "Restricted",
-      "county": self.county
+      "county": self.venue.county,
+      "place_id": self.venue.place_id
     }
   
   def get_metadata(self):
@@ -157,3 +114,40 @@ class Event(db.Model):
       "created_time": self.created_time.strftime("%H:%M:%S"),
       "event_id": self.event_id,
     }
+  
+# Helper functions
+
+# Takes in input from the event POST or PUT request and returns a formatted version of the input
+def format_event_input(request: Request):
+  # Format end time
+  end_time = request.json['eventEndTime']
+  if not end_time == None:
+    end_time = datetime.fromisoformat(end_time.replace("Z", "+00:00")).strftime("%H:%M")
+
+  # Format cover charge
+  cover_charge = request.json['coverCharge']
+  if cover_charge == "":
+    cover_charge = "0"
+  cover_charge = int(cover_charge)
+
+  formatted_input = {
+    "venue_name": request.json["venueName"],
+    "venue_place_id": request.json["venueAddress"]["place_id"],
+    "band_name": request.json["bandName"],
+    "band_type": request.json["bandType"],
+    "tribute_band_name": request.json["tributeBandName"] if request.json["bandType"] == "Tribute Band" else "",
+    "genres": request.json["genres"],
+    "event_date": datetime.fromisoformat(request.json['eventDate'].replace("Z", "+00:00")).strftime("%Y-%m-%d"),
+    "start_time": datetime.fromisoformat(request.json['eventStartTime'].replace("Z", "+00:00")).strftime("%H:%M"),
+    "end_time": end_time,
+    "cover_charge": cover_charge,
+    "other_info": request.json['otherInfo'],
+    "website": request.json['website'],
+    "facebook_handle": request.json['facebookHandle'],
+    "instagram_handle": request.json['instagramHandle'],
+    "band_or_venue": request.json['bandOrVenue'],
+    "phone_number": request.json['phone'],
+    "email_address": request.json['email'],
+  }
+
+  return formatted_input
