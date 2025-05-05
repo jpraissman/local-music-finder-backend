@@ -182,10 +182,9 @@ def get_events_by_county(county_names):
   county_names_split = county_names.split("::")
   
   start_date, end_date = get_date_range('Next 30 Days')
-  events = Event.query.filter(Event.venue.county.in_(county_names_split),
-                              Event.event_date >= start_date,
-                              Event.event_date <= end_date)
-  
+  events = db.session.query(Event).join(Event.venue).filter(Venue.county.in_(county_names_split),
+                                                            Event.event_date >= start_date,
+                                                            Event.event_date <= end_date).all()
   events_json = []
   for event in events:
     event.set_distance_data("", -1)

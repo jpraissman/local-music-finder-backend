@@ -22,8 +22,8 @@ def create_event_background(eventId: str):
   email_2_status = EmailSender.send_admin_event_email(event)
 
   # Get any events with the same date and address. If there are potential duplicates, send an email
-  events = Event.query.filter(Event.event_date == event.event_date,
-                              Event.venue.address == event.venue.address).all()
+  events = db.session.query(Event).join(Event.venue).filter(Event.event_date == event.event_date,
+                                                            Venue.address == Venue.address).all()
   email_3_status = True
   if (len(events) > 1):
     email_3_status = EmailSender.send_duplicate_event_email(events)
