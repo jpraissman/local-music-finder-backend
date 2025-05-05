@@ -182,7 +182,7 @@ def get_events_by_county(county_names):
   county_names_split = county_names.split("::")
   
   start_date, end_date = get_date_range('Next 30 Days')
-  events = Event.query.filter(Event.county.in_(county_names_split),
+  events = Event.query.filter(Event.venue.county.in_(county_names_split),
                               Event.event_date >= start_date,
                               Event.event_date <= end_date)
   
