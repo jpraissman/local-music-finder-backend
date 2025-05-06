@@ -20,14 +20,14 @@ event_bp = Blueprint('event', __name__)
 @event_bp.route('/events', methods= ['GET'])
 def get_events():
   # Get filter values
-  date_range = request.args.get('date_range')
+  from_date = request.args.get('from_date')
+  to_date = request.args.get('to_date')
   address = request.args.get('address')
   max_distance = request.args.get('max_distance')
   genres = request.args.get('genres')
   band_types = request.args.get('band_types')
   from_where = request.args.get('from_where')
 
-  start_date, end_date = get_date_range(date_range)
   genres = genres.split("::")
   band_types = band_types.split("::")
   max_distance = get_max_distance_miles(max_distance)
@@ -43,8 +43,8 @@ def get_events():
 
   # Get events that meet the filter requirements
   potential_events = Event.query.filter(Event.band_type.in_(band_types),
-                                        Event.event_date >= start_date,
-                                        Event.event_date <= end_date).all()
+                                        Event.event_date >= from_date,
+                                        Event.event_date <= to_date).all()
   final_events = []
   for potential_event in potential_events:
     for genre in genres:
@@ -57,7 +57,7 @@ def get_events():
 
   # Create a row in the 'Query' table for this query.
   max_distance_orig = request.args.get('max_distance')
-  query = Query(date_range, address, max_distance_orig, genres, band_types, from_where)
+  query = Query(from_date + " to " + to_date, address, max_distance_orig, genres, band_types, from_where)
   db.session.add(query)
   db.session.commit()
 
