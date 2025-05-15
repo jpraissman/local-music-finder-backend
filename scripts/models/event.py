@@ -3,6 +3,7 @@ from datetime import datetime
 import pytz
 from scripts.get_date_formatted import get_date_formatted
 from flask import Request
+import random
 
 class Event(db.Model):
   __tablename__ = 'event'
@@ -104,7 +105,10 @@ class Event(db.Model):
       "event_datetime": event_datetime_str,
       "event_id": self.event_id if include_event_id else "Restricted",
       "county": self.venue.county,
-      "place_id": self.venue.place_id
+      "place_id": self.venue.place_id,
+      "youtube_id": "",
+      "ranking_position": random.randint(1, 100),
+      "town": "Test, NJ",
     }
   
   def get_metadata(self):
