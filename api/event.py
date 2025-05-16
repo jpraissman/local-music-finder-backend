@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, Response, abort
 from scripts.date_ranges import get_date_range
 from scripts.max_distance import get_max_distance_miles
 from scripts.haversine_distance import haversine_distance
-import requests, csv, io, urllib.parse, pytz
+import requests, csv, io, urllib.parse, pytz, random
 from datetime import datetime, timedelta
 from typing import List
 from sqlalchemy import desc, func
@@ -71,6 +71,7 @@ def get_upcoming_events():
   potential_events = db.session.query(Event).join(Event.band).filter(func.cardinality(Band.youtube_ids) > 0,
                                                                      Event.event_date >= today,
                                                                      Event.event_date <= today + timedelta(days=7)).all()
+  random.shuffle(potential_events)
   events_json = []
   if len(potential_events) < 3:
     for event in potential_events:
