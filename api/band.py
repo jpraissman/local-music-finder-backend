@@ -1,5 +1,7 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
+from app import db
 from scripts.models.band import Band
+from sqlalchemy.orm.attributes import flag_modified
 
 band_bp = Blueprint('band', __name__)
 
@@ -10,6 +12,25 @@ def get_all_bands():
   response = {}
 
   for band in all_bands:
-    response[band.band_name] = {"band_type": band.band_type, "tribute_band_name": band.tribute_band_name, "genres": band.genres}
+    response[band.band_name] = {"band_type": band.band_type, "tribute_band_name": band.tribute_band_name, "genres": band.genres, "id": band.id}
 
   return jsonify(response)
+
+@band_bp.route('/bands/add-video/<band_id>', methods = ['POST'])
+def add_video(band_id):
+  # Get the band from the database
+  band: Band = Band.query.get(band_id)
+  if not band:
+    return jsonify({"error": "Band not found"}), 404
+
+  # Get the video URL from the request
+  video_url = request.json.get('video_url')
+  if not video_url:
+    return jsonify({"error": "Video URL is required"}), 400
+
+  # Add the video ID to the band's list of YouTube IDs
+  band.add_youtube_id(video_url)
+  flag_modified(band, "youtube_ids")
+  db.session.commit()
+
+  return jsonify({"message": "Video added successfully"})

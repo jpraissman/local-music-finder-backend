@@ -106,7 +106,7 @@ class Event(db.Model):
       "event_id": self.event_id if include_event_id else "Restricted",
       "county": self.venue.county,
       "place_id": self.venue.place_id,
-      "youtube_id": "yx-68AwAyTU",
+      "youtube_id": "" if len(self.band.youtube_ids) == 0 else self.band.youtube_ids[0],
       "ranking_position": random.randint(1, 100),
       "town": "Test, NJ",
     }

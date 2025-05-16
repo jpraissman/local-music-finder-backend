@@ -17,6 +17,7 @@ class Venue(db.Model):
   lng: float = db.Column(db.Float, nullable=False)
   county: str = db.Column(db.String, nullable=False)
   place_id : str = db.Column(db.String, nullable=True)
+  town: str = db.Column(db.String)
 
   def __init__(self, venue_name: str, place_id: str):
     self.venue_name = venue_name
