@@ -2,17 +2,15 @@ from flask import Blueprint, request, jsonify, Response, abort
 from scripts.date_ranges import get_date_range
 from scripts.max_distance import get_max_distance_miles
 from scripts.haversine_distance import haversine_distance
-import requests, csv, io, urllib.parse
-import scripts.send_emails as EmailSender 
-from datetime import datetime
+import requests, csv, io, urllib.parse, pytz
+from datetime import datetime, timedelta
 from typing import List
-from sqlalchemy import desc
-from scripts.models.event import Event, format_event_input
+from sqlalchemy import desc, func
+from scripts.models.event import Event
 from scripts.models.query import Query
 from scripts.models.venue import Venue
 from scripts.models.band import Band
 from app import db, API_KEY, ADMIN_KEY
-from scripts.generate_event_id import generate_event_id
 
 event_bp = Blueprint('event', __name__)
 
@@ -64,6 +62,28 @@ def get_events():
   # Sort the event_list by event_datetime
   event_list_sorted = sorted(final_events, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
   return {'events': event_list_sorted}
+
+# Gets up to three events in the upcoming week that have an attached video
+@event_bp.route('/events/upcoming', methods = ['GET'])
+def get_upcoming_events():
+  et = pytz.timezone("US/Eastern")
+  today = datetime.now(et).date()
+  potential_events = db.session.query(Event).join(Event.band).filter(func.cardinality(Band.youtube_ids) > 0,
+                                                                     Event.event_date >= today,
+                                                                     Event.event_date <= today + timedelta(days=7)).all()
+  events_json = []
+  if len(potential_events) < 3:
+    for event in potential_events:
+      event.set_distance_data("", -1)
+      events_json.append(event.get_all_details(False, False))
+  else:
+    for i in range(3):
+      event = potential_events[i]
+      event.set_distance_data("", -1)
+      events_json.append(event.get_all_details(False, False))
+
+  result = sorted(events_json, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
+  return {'events': result}
 
 # Get events with the given ids
 @event_bp.route('/events/ids', methods = ['GET'])
