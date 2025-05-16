@@ -39,6 +39,8 @@ class Venue(db.Model):
       for component in address_components:
         if component['types'][0] == 'administrative_area_level_2':
           self.county = component['long_name']
+        if component['types'][0] == 'locality':
+          self.town = component['long_name']
       
       # Get address
       self.address = response.json()["results"][0]["formatted_address"]

@@ -108,7 +108,7 @@ class Event(db.Model):
       "place_id": self.venue.place_id,
       "youtube_id": "" if len(self.band.youtube_ids) == 0 else self.band.youtube_ids[0],
       "ranking_position": random.randint(1, 100),
-      "town": "Test, NJ",
+      "town": self.venue.town,
     }
   
   def get_metadata(self):
