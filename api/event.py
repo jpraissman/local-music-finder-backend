@@ -25,6 +25,9 @@ def get_events():
   genres = request.args.get('genres')
   band_types = request.args.get('band_types')
   from_where = request.args.get('from_where')
+  user_agent = request.args.get('user_agent')
+  ip_address = request.args.get('ip_address')
+  referer = request.args.get('referer')
 
   genres = genres.split("::")
   band_types = band_types.split("::")
@@ -55,7 +58,8 @@ def get_events():
 
   # Create a row in the 'Query' table for this query.
   max_distance_orig = request.args.get('max_distance')
-  query = Query(from_date + " to " + to_date, address, max_distance_orig, genres, band_types, from_where)
+  query = Query(from_date + " to " + to_date, address, max_distance_orig, genres, band_types, from_where,
+                user_agent, ip_address, referer)
   db.session.add(query)
   db.session.commit()
 
@@ -90,6 +94,9 @@ def get_upcoming_events():
 @event_bp.route('/events/ids', methods = ['GET'])
 def get_events_by_id():
   ids = request.args.get('ids').split("::")
+  user_agent = request.args.get('user_agent')
+  ip_address = request.args.get('ip_address')
+  referer = request.args.get('referer')
 
   events = Event.query.filter(Event.id.in_(ids))
   
@@ -98,7 +105,7 @@ def get_events_by_id():
     event.set_distance_data("", -1)
     events_json.append(event.get_all_details(False, False))
 
-  query = Query("Specific IDs Link", ids, "", "", "", "")
+  query = Query("Specific IDs Link", ids, "", "", "", "", user_agent, ip_address, referer)
   db.session.add(query)
   db.session.commit()
 
@@ -201,6 +208,9 @@ def get_event(event_id):
 @event_bp.route('/events/county/<county_names>', methods = ['GET'])
 def get_events_by_county(county_names):
   county_names_split = county_names.split("::")
+  user_agent = request.args.get('user_agent')
+  ip_address = request.args.get('ip_address')
+  referer = request.args.get('referer')
   
   start_date, end_date = get_date_range('Next 30 Days')
   events = db.session.query(Event).join(Event.venue).filter(Venue.county.in_(county_names_split),
@@ -211,7 +221,7 @@ def get_events_by_county(county_names):
     event.set_distance_data("", -1)
     events_json.append(event.get_all_details(False, False))
 
-  query = Query("County Link", county_names_split, "", "", "", "")
+  query = Query("County Link", county_names_split, "", "", "", "", user_agent, ip_address, referer)
   db.session.add(query)
   db.session.commit()
 
@@ -222,6 +232,10 @@ def get_events_by_county(county_names):
 # get all events this week
 @event_bp.route('/events/all-events-this-week', methods = ['GET'])
 def get_all_future_events():
+  user_agent = request.args.get('user_agent')
+  ip_address = request.args.get('ip_address')
+  referer = request.args.get('referer')
+
   start_date, end_date = get_date_range("This Week (Mon-Sun)")
   events = Event.query.filter(Event.event_date >= start_date, 
                               Event.event_date <= end_date)
@@ -230,7 +244,7 @@ def get_all_future_events():
   for event in events:
     all_event_details.append(event.get_all_details(False, False))
 
-  query = Query("All NJ Events", "", "", "", "", "")
+  query = Query("All NJ Events", "", "", "", "", "", user_agent, ip_address, referer)
   db.session.add(query)
   db.session.commit()
 
