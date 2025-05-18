@@ -15,12 +15,13 @@ def get_all_queries():
   # Step 2: Use the csv writer to write to the buffer
   writer = csv.writer(csv_buffer)
   writer.writerow(['Search Date', 'Date Range', 'Location', 'Distance',
-                   'Genres', 'Band Types', 'From', 'Id'])  # CSV header
+                   'Genres', 'Band Types', 'From', 'Id', 'User Agent', 'IP', 'Referer'])  # CSV header
 
   queries: List[Query] = Query.query.order_by(desc(Query.created_at)).all()
   for query in queries:
     writer.writerow([query.created_at, query.time_range, query.location,
-                     query.distance, query.genres, query.band_types, query.from_where, query.id])
+                     query.distance, query.genres, query.band_types, query.from_where, query.id,
+                     query.user_agent, query.ip, query.referer])  # CSV data
 
   # Step 3: Set the buffer's position to the start (so it can be read)
   csv_buffer.seek(0)
