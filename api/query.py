@@ -21,7 +21,7 @@ def get_all_queries():
   for query in queries:
     writer.writerow([query.created_at, query.time_range, query.location,
                      query.distance, query.genres, query.band_types, query.from_where, query.id,
-                     query.user_agent, query.ip, query.referer])  # CSV data
+                     query.user_agent, query.ip_address, query.referer])  # CSV data
 
   # Step 3: Set the buffer's position to the start (so it can be read)
   csv_buffer.seek(0)
