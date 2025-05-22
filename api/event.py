@@ -130,7 +130,7 @@ def get_all_events():
                    'Other Info', 'Facebook', 'Instagram',
                    'Website', "Phone", 'Band/Venue',
                    'Email Address', 'Created Date', 'Id', 
-                   'Event Id'])  # CSV header
+                   'Event Id', 'Band Has Video'])  # CSV header
 
   events: List[Event] = Event.query.order_by(desc(Event.created_date)).all()
   for event in events:
@@ -140,7 +140,7 @@ def get_all_events():
                      event.other_info, event.facebook_handle, event.instagram_handle,
                      event.website, event.phone_number, event.band_or_venue,
                      event.email_address, event.created_date, event.id,
-                     event.event_id])
+                     event.event_id, "No" if len(event.band.youtube_ids) == 0 else "Yes"])  # CSV data
 
   # Step 3: Set the buffer's position to the start (so it can be read)
   csv_buffer.seek(0)
