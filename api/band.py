@@ -1,7 +1,9 @@
 from flask import Blueprint, jsonify, request
 from app import db
 from scripts.models.band import Band
+from scripts.models.event import Event
 from sqlalchemy.orm.attributes import flag_modified
+from datetime import datetime
 
 band_bp = Blueprint('band', __name__)
 
@@ -34,3 +36,25 @@ def add_video(band_id):
   db.session.commit()
 
   return jsonify({"message": "Video added successfully"})
+
+@band_bp.route('/bands-for-nav-bar', methods = ['GET'])
+def get_bands_for_nav_bar():
+  all_bands: list[Band] = Band.query.all()
+  response = []
+
+  for band in all_bands:
+    response.append({"name": band.band_name, "genres": band.genres, "id": band.id})
+
+  return jsonify(response)
+
+@band_bp.route('/band/<band_id>/events', methods = ['GET'])
+def get_band_events(band_id):
+  events = db.session.query(Event).join(Event.band).filter(Band.id == band_id).all()
+
+  events_json = []
+  for event in events:
+    event.set_distance_data("", -1)
+    events_json.append(event.get_all_details(False, False))
+
+  events_json_sorted = sorted(events_json, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
+  return {'events': events_json_sorted}
