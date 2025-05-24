@@ -17,9 +17,19 @@ def get_all_venues():
 
   return jsonify(response)
 
-@venue_bp.route('/venue/<venue_name>/events', methods = ['GET'])
-def get_venue_events(venue_name):
-  events = db.session.query(Event).join(Event.venue).filter(Venue.venue_name == venue_name).all()
+@venue_bp.route('/venues-for-nav-bar', methods = ['GET'])
+def get_venues_for_nav_bar():
+  all_venues: list[Venue] = Venue.query.all()
+  response = []
+
+  for venue in all_venues:
+    response.append({"name": venue.venue_name, "town": venue.town, "id": venue.id})
+
+  return jsonify(response)
+
+@venue_bp.route('/venue/<venue_id>/events', methods = ['GET'])
+def get_venue_events(venue_id):
+  events = db.session.query(Event).join(Event.venue).filter(Venue.id == venue_id).all()
 
   events_json = []
   for event in events:
