@@ -33,6 +33,7 @@ from api.visit import visit_bp
 from api.venue import venue_bp
 from api.band import band_bp
 from api.event_modify import event_modify_bp
+from api.user import user_bp
 
 app.register_blueprint(event_bp)
 app.register_blueprint(query_bp)
@@ -40,6 +41,7 @@ app.register_blueprint(visit_bp)
 app.register_blueprint(venue_bp)
 app.register_blueprint(band_bp)
 app.register_blueprint(event_modify_bp)
+app.register_blueprint(user_bp)
 
 # Import database models so they are seen
 from scripts.models.band import Band
@@ -47,6 +49,12 @@ from scripts.models.event import Event
 from scripts.models.query import Query
 from scripts.models.venue import Venue
 from scripts.models.visit import Visit
+from scripts.models.user import User
+from scripts.models.session import Session
+from scripts.models.activity import Activity
+from scripts.models.event_view import EventView
+from scripts.models.bot_activity import BotActivity
+from scripts.models.video_click import VideoClick
 
 # Used to make helper send rate limit emails
 class RateLimitEmailHelper:

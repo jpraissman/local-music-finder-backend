@@ -10,13 +10,24 @@ from scripts.models.event import Event
 from scripts.models.query import Query
 from scripts.models.venue import Venue
 from scripts.models.band import Band
+from scripts.models.user import User
 from app import db, API_KEY, ADMIN_KEY
+from scripts.user_helpers import is_bot, get_user
 
 event_bp = Blueprint('event', __name__)
 
 # Get events (for main part of website)
 @event_bp.route('/events', methods= ['GET'])
 def get_events():
+  # See if the request came from a bot
+  user_agent = request.args.get('user_agent')
+  user_is_bot = is_bot(user_agent)
+
+  # Get the user
+  user_id = request.args.get('user_id')
+  if not user_is_bot:
+    user = get_user(user_id, db)
+
   # Get filter values
   from_date = request.args.get('from_date')
   to_date = request.args.get('to_date')
@@ -24,10 +35,6 @@ def get_events():
   max_distance = request.args.get('max_distance')
   genres = request.args.get('genres')
   band_types = request.args.get('band_types')
-  from_where = request.args.get('from_where')
-  user_agent = request.args.get('user_agent')
-  ip_address = request.args.get('ip_address')
-  referer = request.args.get('referer')
 
   genres = genres.split("::")
   band_types = band_types.split("::")
@@ -43,9 +50,9 @@ def get_events():
   lng = data["lng"]
 
   # Get events that meet the filter requirements
-  potential_events = Event.query.filter(Event.band_type.in_(band_types),
-                                        Event.event_date >= from_date,
-                                        Event.event_date <= to_date).all()
+  potential_events: list[Event] = Event.query.filter(Event.band_type.in_(band_types),
+                                                     Event.event_date >= from_date,
+                                                     Event.event_date <= to_date).all()
   final_events = []
   for potential_event in potential_events:
     for genre in genres:
@@ -54,13 +61,11 @@ def get_events():
           if (distance <= max_distance):
             potential_event.set_distance_data(str(round(distance, 1)) + " mi", round(distance, 2))
             final_events.append(potential_event.get_all_details(False, False))
+            if not user_is_bot:
+              user.add_event_view(potential_event.id)
           break
 
-  # Create a row in the 'Query' table for this query.
-  max_distance_orig = request.args.get('max_distance')
-  query = Query(from_date + " to " + to_date, address, max_distance_orig, genres, band_types, from_where,
-                user_agent, ip_address, referer)
-  db.session.add(query)
+  # Commit anything that was created to the database
   db.session.commit()
 
   # Sort the event_list by event_datetime
@@ -93,10 +98,16 @@ def get_upcoming_events():
 # Get events with the given ids
 @event_bp.route('/events/ids', methods = ['GET'])
 def get_events_by_id():
-  ids = request.args.get('ids').split("::")
+  # See if the request came from a bot
   user_agent = request.args.get('user_agent')
-  ip_address = request.args.get('ip_address')
-  referer = request.args.get('referer')
+  user_is_bot = is_bot(user_agent)
+
+  # Get the user
+  user_id = request.args.get('user_id')
+  if not user_is_bot:
+    user = get_user(user_id, db)
+
+  ids = request.args.get('ids').split("::")
 
   events = Event.query.filter(Event.id.in_(ids))
   
@@ -104,9 +115,9 @@ def get_events_by_id():
   for event in events:
     event.set_distance_data("", -1)
     events_json.append(event.get_all_details(False, False))
+    if not user_is_bot:
+      user.add_event_view(event.id)
 
-  query = Query("Specific IDs Link", ids, "", "", "", "", user_agent, ip_address, referer)
-  db.session.add(query)
   db.session.commit()
 
   events_json_sorted = sorted(events_json, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
@@ -207,10 +218,16 @@ def get_event(event_id):
 # Get all events in the next 30 days in the given county 
 @event_bp.route('/events/county/<county_names>', methods = ['GET'])
 def get_events_by_county(county_names):
-  county_names_split = county_names.split("::")
+  # See if the request came from a bot
   user_agent = request.args.get('user_agent')
-  ip_address = request.args.get('ip_address')
-  referer = request.args.get('referer')
+  user_is_bot = is_bot(user_agent)
+
+  # Get the user
+  user_id = request.args.get('user_id')
+  if not user_is_bot:
+    user = get_user(user_id, db)
+
+  county_names_split = county_names.split("::")
   
   start_date, end_date = get_date_range('Next 30 Days')
   events = db.session.query(Event).join(Event.venue).filter(Venue.county.in_(county_names_split),
@@ -220,9 +237,9 @@ def get_events_by_county(county_names):
   for event in events:
     event.set_distance_data("", -1)
     events_json.append(event.get_all_details(False, False))
+    if not user_is_bot:
+      user.add_event_view(event.id)
 
-  query = Query("County Link", county_names_split, "", "", "", "", user_agent, ip_address, referer)
-  db.session.add(query)
   db.session.commit()
 
   events_json_sorted = sorted(events_json, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
@@ -232,9 +249,14 @@ def get_events_by_county(county_names):
 # get all events this week
 @event_bp.route('/events/all-events-this-week', methods = ['GET'])
 def get_all_future_events():
+  # See if the request came from a bot
   user_agent = request.args.get('user_agent')
-  ip_address = request.args.get('ip_address')
-  referer = request.args.get('referer')
+  user_is_bot = is_bot(user_agent)
+
+  # Get the user
+  user_id = request.args.get('user_id')
+  if not user_is_bot:
+    user = get_user(user_id, db)
 
   start_date, end_date = get_date_range("This Week (Mon-Sun)")
   events = Event.query.filter(Event.event_date >= start_date, 
@@ -243,9 +265,9 @@ def get_all_future_events():
   all_event_details = []
   for event in events:
     all_event_details.append(event.get_all_details(False, False))
+    if not user_is_bot:
+      user.add_event_view(event.id)
 
-  query = Query("All NJ Events", "", "", "", "", "", user_agent, ip_address, referer)
-  db.session.add(query)
   db.session.commit()
 
   events_json_sorted = sorted(all_event_details, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
