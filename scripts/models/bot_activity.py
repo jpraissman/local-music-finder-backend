@@ -11,10 +11,12 @@ class BotActivity(db.Model):
   user_agent: str = db.Column(db.String)
   ip: str = db.Column(db.String)
   referer: str = db.Column(db.String)
+  is_query: str = db.Column(db.Boolean)
 
-  def __init__(self, page: str, user_agent: str, ip: str, referer: str):
+  def __init__(self, page: str, user_agent: str, ip: str, referer: str, is_query: bool):
     self.page = page
     self.user_agent = user_agent
     self.ip = ip
     self.referer = referer
     self.created_at = datetime.now(pytz.timezone("US/Eastern"))
+    self.is_query = is_query

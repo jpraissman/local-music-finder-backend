@@ -1,9 +1,24 @@
 from user_agents import parse
 from scripts.models.user import User
+from app import db
+from scripts.models.bot_activity import BotActivity
 
-def is_bot(user_agent_str: str):
+other_bot_keywords = ["vercel-screenshot", "Google-InspectionTool", "GoogleOther"]
+
+def is_bot(user_agent_str: str, is_query: bool = False, page: str = None, 
+           ip: str = None, referer: str = None, track_activity: bool = False):
+  # Track bot activity if required
+  if track_activity:
+    track_bot_activity(user_agent_str, is_query, page, ip, referer)
+  
+  # Determine if the user agent is a bot
   user_agent = parse(user_agent_str)
-  return user_agent.is_bot
+  return user_agent.is_bot or any(keyword in user_agent_str for keyword in other_bot_keywords)
+
+def track_bot_activity(user_agent: str, is_query: bool, page: str, ip: str, referer: str):
+  new_bot_activity = BotActivity(page, user_agent, ip, referer, is_query)
+  db.session.add(new_bot_activity)
+  db.session.commit()
 
 def get_user(user_id: str, db):
   user = User.query.filter_by(id=user_id).first()

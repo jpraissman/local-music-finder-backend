@@ -21,7 +21,7 @@ event_bp = Blueprint('event', __name__)
 def get_events():
   # See if the request came from a bot
   user_agent = request.args.get('user_agent')
-  user_is_bot = is_bot(user_agent)
+  user_is_bot = is_bot(user_agent, is_query=True, page=f"/find/customsearch...", track_activity=True)
 
   # Get the user
   user_id = request.args.get('user_id')
@@ -100,7 +100,7 @@ def get_upcoming_events():
 def get_events_by_id():
   # See if the request came from a bot
   user_agent = request.args.get('user_agent')
-  user_is_bot = is_bot(user_agent)
+  user_is_bot = is_bot(user_agent, is_query=True, page=f"/events/ids/{request.args.get('ids')}", track_activity=True)
 
   # Get the user
   user_id = request.args.get('user_id')
@@ -220,7 +220,7 @@ def get_event(event_id):
 def get_events_by_county(county_names):
   # See if the request came from a bot
   user_agent = request.args.get('user_agent')
-  user_is_bot = is_bot(user_agent)
+  user_is_bot = is_bot(user_agent, is_query=True, page=f"/events/county/{county_names}", track_activity=True)
 
   # Get the user
   user_id = request.args.get('user_id')
@@ -251,7 +251,7 @@ def get_events_by_county(county_names):
 def get_all_future_events():
   # See if the request came from a bot
   user_agent = request.args.get('user_agent')
-  user_is_bot = is_bot(user_agent)
+  user_is_bot = is_bot(user_agent, is_query=True, page="/events", track_activity=True)
 
   # Get the user
   user_id = request.args.get('user_id')

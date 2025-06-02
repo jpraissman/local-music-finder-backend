@@ -11,9 +11,7 @@ def add_video_click():
   # Check if the request came from a bot
   user_agent = request.json['user_agent']
   user_is_bot = is_bot(user_agent)
-  if user_is_bot:
-    pass
-  else:
+  if not user_is_bot:
     # Get parameters
     user_id = request.json['user_id']
     event_id = request.json['event_id']
@@ -26,24 +24,14 @@ def add_video_click():
 
 @user_bp.route('/activity', methods=['POST'])
 def add_activity():
-  # Check if the request came from a bot
   user_agent = request.json['user_agent']
-  user_is_bot = is_bot(user_agent)
-  if user_is_bot:
-    page = request.json['page']
-    ip = request.json['ip']
-    referer = request.json['referer']
+  page = request.json['page']
+  ip = request.json['ip']
+  referer = request.json['referer']
+  user_is_bot = is_bot(user_agent, is_query=False, page=page, ip=ip, referer=referer, track_activity=True)
 
-    new_bot_activity = BotActivity(page, user_agent, ip, referer)
-    db.session.add(new_bot_activity)
-    db.session.commit()
-  else:
-    # Get parameters
+  if not user_is_bot:
     user_id = request.json['user_id']
-    page = request.json['page']
-    ip = request.json['ip']
-    referer = request.json['referer']
-
     user: User = get_user(user_id, db)
     user.add_activity(page, user_agent, ip, referer)
     db.session.commit()
