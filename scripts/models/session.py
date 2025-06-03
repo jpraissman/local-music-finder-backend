@@ -34,7 +34,6 @@ class Session(db.Model):
     new_event_view = EventView(event_id, self.id)
     db.session.add(new_event_view)
     self.viewed_events.append(new_event_view)
-    self.end_time = get_eastern_datetime_now_str()
 
   def add_video_click(self, event_id: int):
     new_video_click = VideoClick(event_id, self.id)
