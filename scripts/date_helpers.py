@@ -9,6 +9,10 @@ def get_eastern_datetime_now():
 
 def convert_to_eastern(dt):
   eastern = pytz.timezone("US/Eastern")
+
+  if isinstance(dt, str):
+    dt = datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
+    
   if dt.tzinfo is None:
     return eastern.localize(dt)
   else:
