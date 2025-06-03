@@ -1,6 +1,5 @@
 from app import db
-from datetime import datetime
-import pytz
+from scripts.date_helpers import get_eastern_datetime_now_str
 
 class BotActivity(db.Model):
   __tablename__ = "bot_activity"
@@ -18,5 +17,5 @@ class BotActivity(db.Model):
     self.user_agent = user_agent
     self.ip = ip
     self.referer = referer
-    self.created_at = datetime.now(pytz.timezone("US/Eastern"))
+    self.created_at = get_eastern_datetime_now_str()
     self.is_query = is_query

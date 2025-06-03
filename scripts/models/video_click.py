@@ -1,6 +1,5 @@
 from app import db
-from datetime import datetime
-import pytz
+from scripts.date_helpers import get_eastern_datetime_now_str
 
 # Represents a video that was clicked by a user
 class VideoClick(db.Model):
@@ -16,4 +15,4 @@ class VideoClick(db.Model):
   def __init__(self, event_id: int, session_id: int):
     self.event_id = event_id
     self.session_id = session_id
-    self.created_datetime = datetime.now(pytz.timezone("US/Eastern"))
+    self.created_datetime = get_eastern_datetime_now_str()

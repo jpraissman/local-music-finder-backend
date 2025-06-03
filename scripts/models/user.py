@@ -1,8 +1,8 @@
 from app import db
 from sqlalchemy.orm import Mapped
 from scripts.models.session import Session
-from datetime import datetime, timedelta
-import pytz
+from datetime import timedelta
+from scripts.date_helpers import get_eastern_datetime_now, convert_to_eastern
 
 class User(db.Model):
   __tablename__ = "user"
@@ -14,21 +14,12 @@ class User(db.Model):
     self.id = id
     self.sessions = []
 
-  # Converts a datetime to eastern time
-  def to_eastern_time(self, dt):
-    eastern = pytz.timezone("US/Eastern")
-    if dt.tzinfo is None:
-        return eastern.localize(dt)
-    else:
-        return dt.astimezone(eastern)
-
   # True if there is an active session for the user. False otherwise
   def has_active_session(self):
     if len(self.sessions) == 0:
       return False
-    last_session = self.sessions[-1]
-    last_session_end_time = self.to_eastern_time(last_session.end_time)
-    cur_time = datetime.now(pytz.timezone("US/Eastern"))
+    last_session_end_time = convert_to_eastern(self.sessions[-1].end_time)
+    cur_time = get_eastern_datetime_now()
     return (cur_time - last_session_end_time) < timedelta(minutes=90)
   
   # Returns the active session for the user. If there is no active session, it creates a new one.
