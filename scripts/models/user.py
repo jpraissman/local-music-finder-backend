@@ -2,17 +2,25 @@ from app import db
 from sqlalchemy.orm import Mapped
 from scripts.models.session import Session
 from datetime import timedelta
-from scripts.date_helpers import get_eastern_datetime_now, convert_to_eastern
+from scripts.date_helpers import get_eastern_datetime_now, convert_to_eastern, get_eastern_datetime_now_str
 
 class User(db.Model):
   __tablename__ = "user"
 
   id: str = db.Column(db.String, primary_key=True)
   sessions: Mapped[list[Session]] = db.relationship("Session", back_populates="user", cascade="all, delete-orphan")
+  created_at = db.Column(db.DateTime)
+  user_agents = db.Column(db.ARRAY(db.String))
+  ip_addresses = db.Column(db.ARRAY(db.String))
+  referers = db.Column(db.ARRAY(db.String))
 
   def __init__(self, id: str):
     self.id = id
     self.sessions = []
+    self.created_at = get_eastern_datetime_now_str()
+    self.user_agents = []
+    self.ip_addresses = []
+    self.referers = []
 
   # True if there is an active session for the user. False otherwise
   def has_active_session(self):
@@ -35,6 +43,13 @@ class User(db.Model):
   def add_activity(self, page: str, user_agent: str, ip: str, referer: str):
     active_session = self.get_active_session()
     active_session.add_activity(page, user_agent, ip, referer)
+    
+    if user_agent not in self.user_agents:
+      self.user_agents.append(user_agent)
+    if ip not in self.ip_addresses:
+      self.ip_addresses.append(ip)
+    if referer not in self.referers:
+      self.referers.append(referer)
 
   def add_event_view(self, event_id: int):
     active_session = self.get_active_session()
