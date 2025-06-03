@@ -45,11 +45,17 @@ class User(db.Model):
     active_session.add_activity(page, user_agent, ip, referer)
     
     if user_agent not in self.user_agents:
-      self.user_agents.append(user_agent)
+      updated_user_agents = list(self.user_agents)
+      updated_user_agents.append(user_agent)
+      self.user_agents = updated_user_agents
     if ip not in self.ip_addresses:
-      self.ip_addresses.append(ip)
+      updated_ip_addresses = list(self.ip_addresses)
+      updated_ip_addresses.append(ip)
+      self.ip_addresses = updated_ip_addresses
     if referer not in self.referers:
-      self.referers.append(referer)
+      updated_referers = list(self.referers)
+      updated_referers.append(referer)
+      self.referers = updated_referers
 
   def add_event_view(self, event_id: int):
     active_session = self.get_active_session()
