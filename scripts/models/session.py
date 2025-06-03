@@ -16,6 +16,8 @@ class Session(db.Model):
   activities: Mapped[list[Activity]] = db.relationship("Activity", back_populates="session", cascade="all, delete-orphan")
   viewed_events: Mapped[list[EventView]] = db.relationship("EventView", back_populates="session", cascade="all, delete-orphan")
   clicked_videos: Mapped[list[VideoClick]] = db.relationship("VideoClick", back_populates="session", cascade="all, delete-orphan")
+  user_agent = db.Column(db.String)
+  referer = db.Column(db.String)
 
   def __init__(self, user_id: str):
     self.start_time = get_eastern_datetime_now_str()
@@ -23,12 +25,19 @@ class Session(db.Model):
     self.user_id = user_id
     self.activities = []
     self.viewed_events = []
+    self.user_agent = "Unknown"
+    self.referer = "Unknown"
 
   def add_activity(self, page: str, user_agent: str, ip: str, referer: str):
     new_activity = Activity(self.id, page, user_agent, ip, referer)
     db.session.add(new_activity)
     self.activities.append(new_activity)
     self.end_time = get_eastern_datetime_now_str()
+
+    if self.user_agent == "Unknown":
+      self.user_agent = user_agent
+    if self.referer == "Unknown" and "thelocalmusicfinder" not in referer and referer != None:
+      self.referer = referer
 
   def add_event_view(self, event_id: int):
     new_event_view = EventView(event_id, self.id)

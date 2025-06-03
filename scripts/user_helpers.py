@@ -20,6 +20,33 @@ def track_bot_activity(user_agent: str, is_query: bool, page: str, ip: str, refe
   db.session.add(new_bot_activity)
   db.session.commit()
 
+def format_referer(referer: str) -> str:
+  if not referer:
+    return "unknown"
+  if "facebook" in referer:
+    return "facebook"
+  if "reddit" in referer:
+    return "reddit"
+  if "google" in referer:
+    return "google"
+  if "patch" in referer:
+    return "patch"
+  return "unknown"
+
+def get_device_type(user_agent_str: str) -> str:
+  if not user_agent_str:
+    return "unknown"
+  
+  user_agent = parse(user_agent_str)
+  if user_agent.is_mobile:
+    return "mobile"
+  elif user_agent.is_tablet:
+    return "tablet"
+  elif user_agent.is_pc:
+    return "computer"
+  else:
+    return "unknown"
+
 def get_user(user_id: str, db):
   user = User.query.filter_by(id=user_id).first()
   if not user:
