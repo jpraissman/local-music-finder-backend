@@ -36,7 +36,7 @@ class Session(db.Model):
 
     if self.user_agent == "Unknown":
       self.user_agent = user_agent
-    if self.referer == "Unknown" and "thelocalmusicfinder" not in referer and referer != None:
+    if referer != None and self.referer == "Unknown" and "thelocalmusicfinder" not in referer:
       self.referer = referer
 
   def add_event_view(self, event_id: int):
