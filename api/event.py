@@ -61,8 +61,8 @@ def get_events():
           if (distance <= max_distance):
             potential_event.set_distance_data(str(round(distance, 1)) + " mi", round(distance, 2))
             final_events.append(potential_event.get_all_details(False, False))
-            if not user_is_bot:
-              user.add_event_view(potential_event.id)
+            # if not user_is_bot:
+            #   user.add_event_view(potential_event.id)
           break
 
   # Commit anything that was created to the database
@@ -115,8 +115,8 @@ def get_events_by_id():
   for event in events:
     event.set_distance_data("", -1)
     events_json.append(event.get_all_details(False, False))
-    if not user_is_bot:
-      user.add_event_view(event.id)
+    # if not user_is_bot:
+    #   user.add_event_view(event.id)
 
   db.session.commit()
 
@@ -237,8 +237,8 @@ def get_events_by_county(county_names):
   for event in events:
     event.set_distance_data("", -1)
     events_json.append(event.get_all_details(False, False))
-    if not user_is_bot:
-      user.add_event_view(event.id)
+    # if not user_is_bot:
+    #   user.add_event_view(event.id)
 
   db.session.commit()
 
@@ -265,8 +265,8 @@ def get_all_future_events():
   all_event_details = []
   for event in events:
     all_event_details.append(event.get_all_details(False, False))
-    if not user_is_bot:
-      user.add_event_view(event.id)
+    # if not user_is_bot:
+    #   user.add_event_view(event.id)
 
   db.session.commit()
 
