@@ -3,7 +3,7 @@ from scripts.models.user import User
 from app import db
 from scripts.models.bot_activity import BotActivity
 
-other_bot_keywords = ["vercel-screenshot", "Google-InspectionTool", "GoogleOther"]
+other_bot_keywords = ["vercel-screenshot", "Google-InspectionTool", "GoogleOther", "Applebot"]
 
 def is_bot(user_agent_str: str, is_query: bool = False, page: str = None, 
            ip: str = None, referer: str = None, track_activity: bool = False):
