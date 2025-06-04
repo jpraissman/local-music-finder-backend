@@ -11,7 +11,7 @@ class Venue(db.Model):
 
   id: int = db.Column(db.Integer, primary_key=True)
   events: Mapped[list[Event]] = db.relationship("Event", back_populates="venue", cascade="all, delete-orphan")
-  venue_name: str = db.Column(db.String(50), nullable=False)
+  venue_name: str = db.Column(db.String, nullable=False)
   address: str = db.Column(db.String, nullable=False)
   lat: float = db.Column(db.Float, nullable=False)
   lng: float = db.Column(db.Float, nullable=False)
