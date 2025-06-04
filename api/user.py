@@ -8,6 +8,7 @@ from app import ADMIN_KEY
 from collections.abc import Callable
 from datetime import datetime, time
 from scripts.user_helpers import get_device_type, format_referer
+import math
 
 user_bp = Blueprint('user', __name__)
 
@@ -42,7 +43,7 @@ def get_new_users():
         and (filter_out_zero_duration == 'false' or (session.end_time - session.start_time).total_seconds() > 0)):
       user_results[user_id] = {
         'user_id': user_id,
-        'duration': round((session.end_time - session.start_time).total_seconds() / 60) + 1,
+        'duration': math.ceil((session.end_time - session.start_time).total_seconds() / 60),
         'device': get_device_type(session.user_agent),
         'referer': format_referer(session.referer),
         'videos_clicked': len(session.clicked_videos),
