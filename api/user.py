@@ -44,13 +44,16 @@ def get_new_users():
         'referer': format_referer(session.referer),
         'videos_clicked': len(session.clicked_videos),
         'events_viewed': len(session.viewed_events),
-        'type': 'new' if session.user.sessions[-1].id == session.id else 'returning',
+        'type': 'new' if session.user.sessions[0].id == session.id else 'returning',
         'pages_visited': len(session.activities),
       }
     elif include_admins == 'true' or not session.user.is_admin:
       user_results[user_id]['duration'] += round((session.end_time - session.start_time).total_seconds() / 60) + 1
       user_results[user_id]['videos_clicked'] += len(session.clicked_videos)
       user_results[user_id]['events_viewed'] += len(session.viewed_events)
+      user_results[user_id]['pages_visited'] += len(session.activities)
+      if session.user.sessions[0].id == session.id:
+        user_results[user_id]['type'] = 'new'
 
   # Get totals
   totals = {
