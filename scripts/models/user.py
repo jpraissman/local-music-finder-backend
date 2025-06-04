@@ -8,7 +8,9 @@ class User(db.Model):
   __tablename__ = "user"
 
   id: str = db.Column(db.String, primary_key=True)
-  sessions: Mapped[list[Session]] = db.relationship("Session", back_populates="user", cascade="all, delete-orphan")
+  sessions: Mapped[list[Session]] = db.relationship("Session", back_populates="user", 
+                                                    cascade="all, delete-orphan",
+                                                    order_by="Session.end_time")
   created_at = db.Column(db.DateTime)
   user_agents = db.Column(db.ARRAY(db.String))
   ip_addresses = db.Column(db.ARRAY(db.String))
