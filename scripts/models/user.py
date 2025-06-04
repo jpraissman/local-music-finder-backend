@@ -15,6 +15,7 @@ class User(db.Model):
   user_agents = db.Column(db.ARRAY(db.String))
   ip_addresses = db.Column(db.ARRAY(db.String))
   referers = db.Column(db.ARRAY(db.String))
+  is_admin = db.Column(db.Boolean, default=False)
 
   def __init__(self, id: str):
     self.id = id

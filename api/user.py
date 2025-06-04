@@ -28,6 +28,7 @@ def get_new_users():
   from_date = request.args.get('from_date')
   to_date = request.args.get('to_date')
   to_date = datetime.combine(datetime.strptime(to_date, '%Y-%m-%d'), time(hour=23, minute=59, second=59))
+  include_admins = request.args.get('include_admins')
 
   all_sessions: list[Session] = Session.query.filter(Session.start_time >= from_date,
                                                      Session.start_time <= to_date).all()
@@ -35,7 +36,7 @@ def get_new_users():
   user_results = {}
   for session in all_sessions:
     user_id = session.user_id
-    if user_id not in user_results:
+    if user_id not in user_results and (include_admins == 'true' or not session.user.is_admin):
       user_results[user_id] = {
         'user_id': user_id,
         'duration': round((session.end_time - session.start_time).total_seconds() / 60) + 1,
@@ -44,13 +45,33 @@ def get_new_users():
         'videos_clicked': len(session.clicked_videos),
         'events_viewed': len(session.viewed_events),
         'type': 'new' if session.user.sessions[-1].id == session.id else 'returning',
+        'pages_visited': len(session.activities),
       }
-    else:
+    elif include_admins == 'true' or not session.user.is_admin:
       user_results[user_id]['duration'] += round((session.end_time - session.start_time).total_seconds() / 60) + 1
       user_results[user_id]['videos_clicked'] += len(session.clicked_videos)
       user_results[user_id]['events_viewed'] += len(session.viewed_events)
 
-  return jsonify({"users": user_results}), 200
+  # Get totals
+  totals = {
+    "total_users": len(user_results),
+    "total_new_users": sum(1 for user in user_results.values() if user['type'] == 'new'),
+    "total_returning_users": sum(1 for user in user_results.values() if user['type'] == 'returning'),
+    "total_mobile_users": sum(1 for user in user_results.values() if user['device'] == 'mobile'),
+    "total_tablet_users": sum(1 for user in user_results.values() if user['device'] == 'tablet'),
+    "total_computer_users": sum(1 for user in user_results.values() if user['device'] == 'computer'),
+    "total_facebook_referers": sum(1 for user in user_results.values() if user['referer'] == 'facebook'),
+    "total_reddit_referers": sum(1 for user in user_results.values() if user['referer'] == 'reddit'),
+    "total_google_referers": sum(1 for user in user_results.values() if user['referer'] == 'google'),
+    "total_patch_referers": sum(1 for user in user_results.values() if user['referer'] == 'patch'),
+    "total_unknown_referers": sum(1 for user in user_results.values() if user['referer'] == 'unknown'),
+    "total_videos_clicked": sum(user['videos_clicked'] for user in user_results.values()),
+    "total_events_viewed": sum(user['events_viewed'] for user in user_results.values()),
+    "total_pages_visited": sum(user['pages_visited'] for user in user_results.values()),
+    "total_duration": sum(user['duration'] for user in user_results.values())
+  }
+
+  return jsonify({"users": user_results, "totals": totals}), 200
 
 
 @user_bp.route('/video-clicked', methods=['POST'])
