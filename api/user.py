@@ -28,7 +28,8 @@ def get_new_users():
   from_date = request.args.get('from_date')
   to_date = request.args.get('to_date')
   to_date = datetime.combine(datetime.strptime(to_date, '%Y-%m-%d'), time(hour=23, minute=59, second=59))
-  include_admins = request.args.get('include_admins')
+  include_admins = request.args.get('include_admins', 'false')
+  filter_out_zero_duration = request.args.get('filter_out_zero_duration', 'true')
 
   all_sessions: list[Session] = Session.query.filter(Session.start_time >= from_date,
                                                      Session.start_time <= to_date).all()
@@ -36,7 +37,9 @@ def get_new_users():
   user_results = {}
   for session in all_sessions:
     user_id = session.user_id
-    if user_id not in user_results and (include_admins == 'true' or not session.user.is_admin):
+    if (user_id not in user_results 
+        and (include_admins == 'true' or not session.user.is_admin)
+        and (not filter_out_zero_duration or (session.end_time - session.start_time).total_seconds() > 0)):
       user_results[user_id] = {
         'user_id': user_id,
         'duration': round((session.end_time - session.start_time).total_seconds() / 60) + 1,
@@ -47,7 +50,8 @@ def get_new_users():
         'type': 'new' if session.user.sessions[0].id == session.id else 'returning',
         'pages_visited': len(session.activities),
       }
-    elif include_admins == 'true' or not session.user.is_admin:
+    elif ((include_admins == 'true' or not session.user.is_admin)
+          and (not filter_out_zero_duration or (session.end_time - session.start_time).total_seconds() > 0)):
       user_results[user_id]['duration'] += round((session.end_time - session.start_time).total_seconds() / 60) + 1
       user_results[user_id]['videos_clicked'] += len(session.clicked_videos)
       user_results[user_id]['events_viewed'] += len(session.viewed_events)
