@@ -18,10 +18,19 @@ class Venue(db.Model):
   county: str = db.Column(db.String, nullable=False)
   place_id : str = db.Column(db.String, nullable=False)
   town: str = db.Column(db.String, nullable=False)
+  phone_number: str = db.Column(db.String)
+  facebook_url: str = db.Column(db.String)
+  instagram_url: str = db.Column(db.String)
+  website_url: str = db.Column(db.String)
 
-  def __init__(self, venue_name: str, place_id: str):
+  def __init__(self, venue_name: str, place_id: str, phone_number: str = None,
+               facebook_url: str = None, instagram_url: str = None, website_url: str = None):
     self.venue_name = venue_name
     self.place_id = place_id
+    self.phone_number = phone_number
+    self.facebook_url = facebook_url
+    self.instagram_url = instagram_url
+    self.website_url = website_url
 
     # Get long, lat, county, and formatted_address using the given place_id
     url = f'https://maps.googleapis.com/maps/api/geocode/json?place_id={place_id}&key={API_KEY}'

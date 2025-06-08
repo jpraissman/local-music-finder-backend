@@ -27,6 +27,24 @@ def get_venues_for_nav_bar():
 
   return jsonify(response)
 
+@venue_bp.route('/venue/<venue_id>', methods = ['GET'])
+def get_venue_details(venue_id):
+  venue: Venue = Venue.query.filter_by(id=venue_id).first()
+  if not venue:
+    return jsonify({"error": "Venue not found"}), 404
+  
+  venue_details = {
+    "id": venue.id,
+    "name": venue.venue_name,
+    "address": venue.address,
+    "town": venue.town,
+    "phone_number": venue.phone_number,
+    "facebook_link": venue.facebook_url,
+    "instagram_link": venue.instagram_url,
+    "website": venue.website_url,
+  }
+  return jsonify(venue_details)
+
 @venue_bp.route('/venue/<venue_id>/events', methods = ['GET'])
 def get_venue_events(venue_id):
   events = db.session.query(Event).join(Event.venue).filter(Venue.id == venue_id).all()

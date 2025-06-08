@@ -40,8 +40,20 @@ def get_related_venue(input: dict[str: any]):
   related_venue: Venue = Venue.query.filter_by(venue_name=input["venue_name"], place_id=input["venue_place_id"]).first()
   if related_venue == None:
     # There is no related venue, so we need to create one
-    related_venue = Venue(venue_name=input["venue_name"], place_id=input["venue_place_id"])
+    related_venue = Venue(venue_name=input["venue_name"], 
+                          place_id=input["venue_place_id"],
+                          phone_number=input["phone_number"] if input["phone_number"] != "" else None,
+                          facebook_url=input["facebook_handle"] if input["facebook_handle"] != "" else None,
+                          instagram_url=input["instagram_handle"] if input["instagram_handle"] != "" else None,
+                          website_url=input["website"] if input["website"] != "" else None)
     db.session.add(related_venue)
+    db.session.commit()
+  else:
+    # There is a related venue, so we need to update it
+    related_venue.phone_number = input["phone_number"] if input["phone_number"] != "" else related_venue.phone_number
+    related_venue.facebook_url = input["facebook_handle"] if input["facebook_handle"] != "" else related_venue.facebook_url
+    related_venue.instagram_url = input["instagram_handle"] if input["instagram_handle"] != "" else related_venue.instagram_url
+    related_venue.website_url = input["website"] if input["website"] != "" else related_venue.website_url
     db.session.commit()
   return related_venue
 
