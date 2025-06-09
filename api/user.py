@@ -12,7 +12,7 @@ user_bp = Blueprint('user', __name__)
 
 @user_bp.route('/users', methods=['GET'])
 @validate_admin_key
-def get_new_users():
+def get_user_totals():
   from_date = request.args.get('from_date')
   to_date = request.args.get('to_date')
   to_date = datetime.combine(datetime.strptime(to_date, '%Y-%m-%d'), time(hour=23, minute=59, second=59))
@@ -23,6 +23,8 @@ def get_new_users():
                                                      Session.start_time <= to_date).all()
   
   user_results = {}
+  total_new_sessions = 0
+  total_returning_sessions = 0
   for session in all_sessions:
     user_id = session.user_id
     if (user_id not in user_results 
@@ -38,6 +40,10 @@ def get_new_users():
         'type': 'new' if session.user.sessions[0].id == session.id else 'returning',
         'pages_visited': len(session.activities),
       }
+      if session.user.sessions[0].id == session.id:
+        total_new_sessions += 1
+      else:
+        total_returning_sessions += 1
     elif ((include_admins == 'true' or not session.user.is_admin)
           and (filter_out_zero_duration == 'false' or (session.end_time - session.start_time).total_seconds() > 0)):
       user_results[user_id]['duration'] += round((session.end_time - session.start_time).total_seconds() / 60) + 1
@@ -46,12 +52,18 @@ def get_new_users():
       user_results[user_id]['pages_visited'] += len(session.activities)
       if session.user.sessions[0].id == session.id:
         user_results[user_id]['type'] = 'new'
+        total_new_sessions += 1
+      else:
+        total_returning_sessions += 1
 
   # Get totals
   totals = {
     "total_users": len(user_results),
     "total_new_users": sum(1 for user in user_results.values() if user['type'] == 'new'),
     "total_returning_users": sum(1 for user in user_results.values() if user['type'] == 'returning'),
+    "total_sessions": total_new_sessions + total_returning_sessions,
+    "total_new_sessions": total_new_sessions,
+    "total_returning_sessions": total_returning_sessions,
     "total_mobile_users": sum(1 for user in user_results.values() if user['device'] == 'mobile'),
     "total_tablet_users": sum(1 for user in user_results.values() if user['device'] == 'tablet'),
     "total_computer_users": sum(1 for user in user_results.values() if user['device'] == 'computer'),

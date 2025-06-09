@@ -31,7 +31,7 @@ class User(db.Model):
       return False
     last_session_end_time = convert_to_eastern(self.sessions[-1].end_time)
     cur_time = get_eastern_datetime_now()
-    return (cur_time - last_session_end_time) < timedelta(minutes=90)
+    return (cur_time - last_session_end_time) < timedelta(minutes=15)
   
   # Returns the active session for the user. If there is no active session, it creates a new one.
   def get_active_session(self):
