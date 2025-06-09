@@ -1,10 +1,42 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from scripts.models.venue import Venue
 from scripts.models.event import Event
 from app import db
 from datetime import datetime
+from scripts.validate_admin import validate_admin_key
 
 venue_bp = Blueprint('venue', __name__)
+
+@venue_bp.route('/venues/merge', methods=['POST'])
+@validate_admin_key
+def merge_venues():
+  venue_id_one = request.json['venue_id_one']
+  venue_id_two = request.json['venue_id_two']
+  venue_name = request.json['venue_name']
+
+  venue_1: Venue = Venue.query.filter_by(id=venue_id_one).first_or_404()
+  venue_2: Venue = Venue.query.filter_by(id=venue_id_two).first_or_404()
+
+  if venue_1.id == venue_2.id:
+    return jsonify({"error": "Cannot merge the same venue"}), 400
+  
+  if len(venue_1.events) >= len(venue_2.events):
+    events_to_move = venue_2.events
+    for event in events_to_move:
+      event.venue = venue_1
+    db.session.commit()
+    db.session.delete(venue_2)
+    venue_1.venue_name = venue_name
+  else:
+    events_to_move = venue_1.events
+    for event in events_to_move:
+      event.venue = venue_2
+    db.session.commit()
+    db.session.delete(venue_1)
+    venue_2.venue_name = venue_name
+  db.session.commit()
+
+  return jsonify({"message": "Venues merged successfully"}), 200
 
 # Returns a dictionary with the keys being all the venue names and the values including the address and the place_id
 @venue_bp.route('/venues', methods = ['GET'])
