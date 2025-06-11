@@ -55,7 +55,7 @@ def get_band_details(band_id):
   
   band_details = {
     "id": band.id,
-    "band_name": band.band_name,
+    "name": band.band_name,
     "band_type": band.band_type,
     "tribute_band_name": band.tribute_band_name,
     "genres": band.genres,
