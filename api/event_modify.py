@@ -43,17 +43,17 @@ def get_related_venue(input: dict[str: any]):
     related_venue = Venue(venue_name=input["venue_name"], 
                           place_id=input["venue_place_id"],
                           phone_number=input["phone_number"] if input["phone_number"] != "" else None,
-                          facebook_url=input["facebook_handle"] if input["facebook_handle"] != "" else None,
-                          instagram_url=input["instagram_handle"] if input["instagram_handle"] != "" else None,
-                          website_url=input["website"] if input["website"] != "" else None)
+                          facebook_url=input["facebook_handle"] if input["facebook_handle"] != "" and input["band_or_venue"] == "Venue" else None,
+                          instagram_url=input["instagram_handle"] if input["instagram_handle"] != "" and input["band_or_venue"] == "Venue" else None,
+                          website_url=input["website"] if input["website"] != "" and input["band_or_venue"] == "Venue" else None)
     db.session.add(related_venue)
     db.session.commit()
   else:
     # There is a related venue, so we need to update it
     related_venue.phone_number = input["phone_number"] if input["phone_number"] != "" else related_venue.phone_number
-    related_venue.facebook_url = input["facebook_handle"] if input["facebook_handle"] != "" else related_venue.facebook_url
-    related_venue.instagram_url = input["instagram_handle"] if input["instagram_handle"] != "" else related_venue.instagram_url
-    related_venue.website_url = input["website"] if input["website"] != "" else related_venue.website_url
+    related_venue.facebook_url = input["facebook_handle"] if input["facebook_handle"] != "" and input["band_or_venue"] == "Venue" else related_venue.facebook_url
+    related_venue.instagram_url = input["instagram_handle"] if input["instagram_handle"] != "" and input["band_or_venue"] == "Venue" else related_venue.instagram_url
+    related_venue.website_url = input["website"] if input["website"] != "" and input["band_or_venue"] == "Venue" else related_venue.website_url
     db.session.commit()
   return related_venue
 
@@ -64,15 +64,20 @@ def get_related_band(input: dict[str: any]):
   if related_band == None:
     # There is no related band, so we need to create one
     related_band = Band(band_name=input["band_name"], band_type=input["band_type"], 
-                        tribute_band_name=input["tribute_band_name"], genres=input["genres"])
+                        tribute_band_name=input["tribute_band_name"], genres=input["genres"],
+                        facebook_url=input["facebook_handle"] if input["facebook_handle"] != "" and input["band_or_venue"] == "Band/Performer" else None,
+                        instagram_url=input["instagram_handle"] if input["instagram_handle"] != "" and input["band_or_venue"] == "Band/Performer" else None,
+                        website_url=input["website"] if input["website"] != "" and input["band_or_venue"] == "Band/Performer" else None)
     db.session.add(related_band)
     db.session.commit()
   else:
     # There is a related band, so we need to update it
-    related_band.band_name = input["band_name"]
     related_band.band_type = input["band_type"]
     related_band.tribute_band_name = input["tribute_band_name"]
     related_band.genres = input["genres"]
+    related_band.facebook_url = input["facebook_handle"] if input["facebook_handle"] != "" and input["band_or_venue"] == "Band/Performer" else related_band.facebook_url
+    related_band.instagram_url = input["instagram_handle"] if input["instagram_handle"] != "" and input["band_or_venue"] == "Band/Performer" else related_band.instagram_url
+    related_band.website_url = input["website"] if input["website"] != "" and input["band_or_venue"] == "Band/Performer" else related_band.website_url
     db.session.commit()
   return related_band
 

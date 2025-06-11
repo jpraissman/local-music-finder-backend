@@ -47,6 +47,24 @@ def get_bands_for_nav_bar():
 
   return jsonify(response)
 
+@band_bp.route('/band/<band_id>', methods = ['GET'])
+def get_band_details(band_id):
+  band: Band = Band.query.filter_by(id=band_id).first()
+  if not band:
+    return jsonify({"error": "Band not found"}), 404
+  
+  band_details = {
+    "id": band.id,
+    "band_name": band.band_name,
+    "band_type": band.band_type,
+    "tribute_band_name": band.tribute_band_name,
+    "genres": band.genres,
+    "facebook_url": band.facebook_url,
+    "instagram_url": band.instagram_url,
+    "website_url": band.website_url,
+  }
+  return jsonify(band_details)
+
 @band_bp.route('/band/<band_id>/events', methods = ['GET'])
 def get_band_events(band_id):
   events = db.session.query(Event).join(Event.band).filter(Band.id == band_id).all()
