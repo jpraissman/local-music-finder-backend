@@ -43,7 +43,8 @@ def get_bands_for_nav_bar():
   response = []
 
   for band in all_bands:
-    response.append({"name": band.band_name, "genres": band.genres, "id": band.id})
+    response.append({"name": band.band_name, "genres": band.genres, "id": band.id,
+                     "band_type": band.band_type, "tribute_band_name": band.tribute_band_name})
 
   return jsonify(response)
 
