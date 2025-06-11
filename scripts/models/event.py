@@ -112,6 +112,8 @@ class Event(db.Model):
       "youtube_id": "" if len(self.band.youtube_ids) == 0 else self.band.youtube_ids[0],
       "ranking_position": random.randint(1, 100),
       "town": self.venue.town,
+      "venue_id": self.venue_id,
+      "band_id": self.band_id
     }
   
   def get_metadata(self):
