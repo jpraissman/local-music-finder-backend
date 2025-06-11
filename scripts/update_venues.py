@@ -5,22 +5,33 @@ from scripts.models.event import Event
 from scripts.models.venue import Venue
 from app import db
 
-events: list[Event] = Event.query.all()
+# events: list[Event] = Event.query.all()
 venues: list[Venue] = Venue.query.all()
 
 count = 0
-for event in events:
+for venue in venues:
+  venue.facebook_url = None
+  venue.instagram_url = None
+  venue.website_url = None
+  venue.phone_number = None
   count += 1
-  if event.band_or_venue == "Venue":
-    for venue in venues:
-      if event.venue_id == venue.id:
-        venue.phone_number = event.phone_number if event.phone_number != "" else venue.phone_number
-        venue.facebook_url = event.facebook_handle if event.facebook_handle != "" else venue.facebook_url
-        venue.instagram_url = event.instagram_handle if event.instagram_handle != "" else venue.instagram_url
-        venue.website_url = event.website if event.website != "" else venue.website_url
-        db.session.commit()
   if count % 100 == 0:
-    print(f"Processed {count} events...")
+    print(f"Processed {count} venues...")
+db.session.commit()
+
+# count = 0
+# for event in events:
+#   count += 1
+#   if event.band_or_venue == "Venue":
+#     for venue in venues:
+#       if event.venue_id == venue.id:
+#         venue.phone_number = event.phone_number if event.phone_number != "" else venue.phone_number
+#         venue.facebook_url = event.facebook_handle if event.facebook_handle != "" else venue.facebook_url
+#         venue.instagram_url = event.instagram_handle if event.instagram_handle != "" else venue.instagram_url
+#         venue.website_url = event.website if event.website != "" else venue.website_url
+#         db.session.commit()
+#   if count % 100 == 0:
+#     print(f"Processed {count} events...")
   
 
 
