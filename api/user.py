@@ -81,7 +81,8 @@ def get_user_totals():
         'type': 'new' if session.user.sessions[0].id == session.id else 'returning',
         'pages_visited': len(session.activities),
         "venues_viewed": session.num_venues_viewded,
-        "bands_viewed": session.num_bands_viewed
+        "bands_viewed": session.num_bands_viewed,
+        "start_time": session.start_time
       }
       if session.user.sessions[0].id == session.id:
         total_new_sessions += 1
