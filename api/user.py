@@ -39,6 +39,8 @@ def get_user_totals():
         'events_viewed': len(session.viewed_events),
         'type': 'new' if session.user.sessions[0].id == session.id else 'returning',
         'pages_visited': len(session.activities),
+        "venues_viewed": session.num_venues_viewded,
+        "bands_viewed": session.num_bands_viewed
       }
       if session.user.sessions[0].id == session.id:
         total_new_sessions += 1
@@ -50,6 +52,8 @@ def get_user_totals():
       user_results[user_id]['videos_clicked'] += len(session.clicked_videos)
       user_results[user_id]['events_viewed'] += len(session.viewed_events)
       user_results[user_id]['pages_visited'] += len(session.activities)
+      user_results[user_id]['venues_viewed'] += session.num_venues_viewded
+      user_results[user_id]['bands_viewed'] += session.num_bands_viewed
       if session.user.sessions[0].id == session.id:
         user_results[user_id]['type'] = 'new'
         total_new_sessions += 1
@@ -75,7 +79,9 @@ def get_user_totals():
     "total_videos_clicked": sum(user['videos_clicked'] for user in user_results.values()),
     "total_events_viewed": sum(user['events_viewed'] for user in user_results.values()),
     "total_pages_visited": sum(user['pages_visited'] for user in user_results.values()),
-    "total_duration": sum(user['duration'] for user in user_results.values())
+    "total_duration": sum(user['duration'] for user in user_results.values()),
+    "total_venues_viewed": sum(user['venues_viewed'] for user in user_results.values()),
+    "total_bands_viewed": sum(user['bands_viewed'] for user in user_results.values())
   }
 
   return jsonify({"users": user_results, "totals": totals}), 200
