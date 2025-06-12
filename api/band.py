@@ -4,6 +4,7 @@ from scripts.models.band import Band
 from scripts.models.event import Event
 from sqlalchemy.orm.attributes import flag_modified
 from datetime import datetime
+from scripts.date_ranges import get_date_range
 
 band_bp = Blueprint('band', __name__)
 
@@ -68,7 +69,9 @@ def get_band_details(band_id):
 
 @band_bp.route('/band/<band_id>/events', methods = ['GET'])
 def get_band_events(band_id):
-  events = db.session.query(Event).join(Event.band).filter(Band.id == band_id).all()
+  start_date, _ = get_date_range("Today")
+  events = db.session.query(Event).join(Event.band).filter(Band.id == band_id,
+                                                          Event.event_date >= start_date).all()
 
   events_json = []
   for event in events:

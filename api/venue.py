@@ -4,6 +4,7 @@ from scripts.models.event import Event
 from app import db
 from datetime import datetime
 from scripts.validate_admin import validate_admin_key
+from scripts.date_ranges import get_date_range
 
 venue_bp = Blueprint('venue', __name__)
 
@@ -79,7 +80,9 @@ def get_venue_details(venue_id):
 
 @venue_bp.route('/venue/<venue_id>/events', methods = ['GET'])
 def get_venue_events(venue_id):
-  events = db.session.query(Event).join(Event.venue).filter(Venue.id == venue_id).all()
+  start_date, _ = get_date_range("Today")
+  events = db.session.query(Event).join(Event.venue).filter(Venue.id == venue_id,
+                                                            Event.event_date >= start_date).all()
 
   events_json = []
   for event in events:
