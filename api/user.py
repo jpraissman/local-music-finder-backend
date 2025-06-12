@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from scripts.models.user import User
 from scripts.models.session import Session
+from scripts.models.activity import Activity
 from app import db
 from scripts.user_helpers import get_user, is_bot
 from datetime import datetime, time
@@ -9,6 +10,46 @@ import math
 from scripts.validate_admin import validate_admin_key
 
 user_bp = Blueprint('user', __name__)
+
+@user_bp.route('/user/<user_id>', methods=['GET'])
+@validate_admin_key
+def get_user_totals_by_id(user_id):
+  user_sessions: list[Session] = Session.query.filter(Session.user_id == user_id).all()
+
+  user_session_results = {}
+  for session in user_sessions:
+    user_session_results[session.id] = {
+      "id": session.id,
+      "device": get_device_type(session.user_agent),
+      "start_time": session.start_time,
+      "end_time": session.end_time,
+      "pages_visited": len(session.activities),
+      "videos_clicked": len(session.clicked_videos),
+      "venues_viewed": session.num_venues_viewded,
+      "bands_viewed": session.num_bands_viewed,
+      "user_agent": session.user_agent,
+      "referer": session.referer
+    }
+  
+  return jsonify({"sessions": user_session_results})
+
+@user_bp.route('/session/<session_id>')
+@validate_admin_key
+def get_sesssion_details(session_id):
+  activities: list[Activity] = Activity.query.filter(Activity.session_id == session_id).all()
+
+  results = {}
+  for activity in activities:
+    results[activity.id] = {
+      "id": activity.id,
+      "page": activity.page,
+      "user_agent": activity.user_agent,
+      "ip_address": activity.ip,
+      "referer": activity.referer,
+      "created_at": activity.created_at
+    }
+  
+  return jsonify({"activities": results})
 
 @user_bp.route('/users', methods=['GET'])
 @validate_admin_key
