@@ -145,6 +145,17 @@ def add_video_click():
 
   return jsonify({"status": "success"}), 200
 
+@user_bp.route('/track-user-exit/<user_id>', methods=['POST'])
+def track_user_exit(user_id):
+  user = User.query.filter_by(id=user_id).first()
+
+  if user is None:
+    return jsonify({"status": "No user found."}), 200
+  else:
+    user.track_exit()
+    db.session.commit()
+    return jsonify({"status": "Exit Tracked"}), 200
+
 @user_bp.route('/activity', methods=['POST'])
 def add_activity():
   user_agent = request.json['user_agent']

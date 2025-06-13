@@ -42,6 +42,10 @@ class User(db.Model):
       db.session.add(new_session)
       self.sessions.append(new_session)
       return new_session
+    
+  def track_exit(self):
+    active_session = self.get_active_session()
+    active_session.end_time = get_eastern_datetime_now_str()
 
   def add_activity(self, page: str, user_agent: str, ip: str, referer: str):
     active_session = self.get_active_session()
