@@ -58,7 +58,8 @@ def get_user_totals():
   to_date = request.args.get('to_date')
   to_date = datetime.combine(datetime.strptime(to_date, '%Y-%m-%d'), time(hour=23, minute=59, second=59))
   include_admins = request.args.get('include_admins', 'false')
-  filter_out_zero_duration = request.args.get('filter_out_zero_duration', 'true')
+  min_duration_seconds = request.args.get('min_duration_seconds')
+  min_duration_seconds = int(min_duration_seconds)
 
   all_sessions: list[Session] = Session.query.filter(Session.start_time >= from_date,
                                                      Session.start_time <= to_date).all()
@@ -70,10 +71,10 @@ def get_user_totals():
     user_id = session.user_id
     if (user_id not in user_results 
         and (include_admins == 'true' or not session.user.is_admin)
-        and (filter_out_zero_duration == 'false' or (session.end_time - session.start_time).total_seconds() > 0)):
+        and ((session.end_time - session.start_time).total_seconds() >= min_duration_seconds)):
       user_results[user_id] = {
         'user_id': user_id,
-        'duration': math.ceil((session.end_time - session.start_time).total_seconds() / 60),
+        'duration': round((session.end_time - session.start_time).total_seconds() / 60, 2),
         'device': get_device_type(session.user_agent),
         'referer': format_referer(session.referer),
         'videos_clicked': len(session.clicked_videos),
@@ -89,8 +90,8 @@ def get_user_totals():
       else:
         total_returning_sessions += 1
     elif ((include_admins == 'true' or not session.user.is_admin)
-          and (filter_out_zero_duration == 'false' or (session.end_time - session.start_time).total_seconds() > 0)):
-      user_results[user_id]['duration'] += round((session.end_time - session.start_time).total_seconds() / 60) + 1
+          and ((session.end_time - session.start_time).total_seconds() > min_duration_seconds)):
+      user_results[user_id]['duration'] += round((session.end_time - session.start_time).total_seconds() / 60, 2)
       user_results[user_id]['videos_clicked'] += len(session.clicked_videos)
       user_results[user_id]['events_viewed'] += len(session.viewed_events)
       user_results[user_id]['pages_visited'] += len(session.activities)
