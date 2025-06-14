@@ -8,6 +8,12 @@ from scripts.date_ranges import get_date_range
 
 band_bp = Blueprint('band', __name__)
 
+@band_bp.route('/videos/<band_id>', methods = ['GET'])
+def get_bands_videos(band_id):
+  band: Band = Band.query.filter(Band.id == band_id).first_or_404()
+
+  return jsonify({"video_ids": band.youtube_ids}), 200
+
 # Returns a dictionary with the keys being all the bands names and the values including the band type, tribute band name, and genres.
 @band_bp.route('/bands', methods = ['GET'])
 def get_all_bands():
@@ -32,11 +38,13 @@ def add_video(band_id):
     return jsonify({"error": "Video URL is required"}), 400
 
   # Add the video ID to the band's list of YouTube IDs
-  band.add_youtube_id(video_url)
-  flag_modified(band, "youtube_ids")
-  db.session.commit()
-
-  return jsonify({"message": "Video added successfully"})
+  video_added = band.add_youtube_id(video_url)
+  if video_added:
+    flag_modified(band, "youtube_ids")
+    db.session.commit()
+    return jsonify({"message": "Video added successfully"})
+  else:
+    return jsonify({"error": "This video was already posted for the band."}), 400 
 
 @band_bp.route('/bands-for-nav-bar', methods = ['GET'])
 def get_bands_for_nav_bar():

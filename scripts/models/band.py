@@ -28,7 +28,22 @@ class Band(db.Model):
     self.instagram_url = instagram_url
     self.website_url = website_url
 
+  def extract_youtube_video_id(self, youtube_url: str) -> str | None:
+    parsed_url = urlparse(youtube_url)
+    
+    if 'youtube.com' in parsed_url.netloc:
+        query_params = parse_qs(parsed_url.query)
+        return query_params.get('v', [None])[0]
+    
+    elif 'youtu.be' in parsed_url.netloc:
+        return parsed_url.path.lstrip('/')
+    
+    return None
+
   def add_youtube_id(self, youtube_url):
-    query_params = parse_qs(urlparse(youtube_url).query)
-    video_id = query_params.get('v')[0]
-    self.youtube_ids.append(video_id)
+    video_id = self.extract_youtube_video_id(youtube_url)
+    if video_id is None or video_id in self.youtube_ids:
+      return False
+    else:
+      self.youtube_ids.append(video_id)
+      return True
