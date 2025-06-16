@@ -13,14 +13,12 @@ from scripts.models.band import Band
 from scripts.models.user import User
 from app import db, API_KEY, ADMIN_KEY
 from scripts.user_helpers import is_bot, get_user
-import time
 
 event_bp = Blueprint('event', __name__)
 
 # Get events (for main part of website)
 @event_bp.route('/events/town/<location>', methods= ['GET'])
 def get_events_by_location(location):
-  time.sleep(2)
   et = pytz.timezone("US/Eastern")
   today = datetime.now(et).date()
 
