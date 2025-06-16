@@ -13,8 +13,41 @@ from scripts.models.band import Band
 from scripts.models.user import User
 from app import db, API_KEY, ADMIN_KEY
 from scripts.user_helpers import is_bot, get_user
+import time
 
 event_bp = Blueprint('event', __name__)
+
+# Get events (for main part of website)
+@event_bp.route('/events/town/<location>', methods= ['GET'])
+def get_events_by_location(location):
+  time.sleep(2)
+  et = pytz.timezone("US/Eastern")
+  today = datetime.now(et).date()
+
+  # Get long and lat using location
+  encoded_location = urllib.parse.quote(location)
+  url = f'https://maps.googleapis.com/maps/api/geocode/json?address={encoded_location}&key={API_KEY}'
+  response = requests.get(url)
+  response.raise_for_status()
+  data = response.json()["results"][0]["geometry"]["location"]
+  lat = data["lat"]
+  lng = data["lng"]
+
+  # Get events that meet the filter requirements
+  potential_events: list[Event] = Event.query.filter(Event.event_date >= today).all()
+  final_events = []
+  for potential_event in potential_events:
+    distance = haversine_distance(lat, potential_event.venue.lat, lng, potential_event.venue.lng)
+    if (distance <= 50):
+      potential_event.set_distance_data(str(round(distance, 1)) + " mi", round(distance, 2))
+      final_events.append(potential_event.get_all_details(False, False))
+
+  # Commit anything that was created to the database
+  db.session.commit()
+
+  # Sort the event_list by event_datetime
+  event_list_sorted = sorted(final_events, key=lambda x: datetime.fromisoformat(x["event_datetime"]))
+  return {'events': event_list_sorted}
 
 # Get events (for main part of website)
 @event_bp.route('/events', methods= ['GET'])
