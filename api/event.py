@@ -289,7 +289,9 @@ def get_all_future_events():
   if not user_is_bot:
     user = get_user(user_id, db)
 
-  start_date, end_date = get_date_range("This Week (Mon-Sun)")
+  et = pytz.timezone("US/Eastern")
+  start_date = datetime.now(et).date()
+  end_date = start_date + timedelta(days=7)
   events = Event.query.filter(Event.event_date >= start_date, 
                               Event.event_date <= end_date)
   
