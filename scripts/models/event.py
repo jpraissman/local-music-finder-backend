@@ -6,6 +6,7 @@ from flask import Request
 import random
 from sqlalchemy.orm import Mapped
 from scripts.models.event_view import EventView
+from scripts.models.video_click import VideoClick
 
 class Event(db.Model):
   __tablename__ = 'event'
@@ -35,6 +36,7 @@ class Event(db.Model):
   band_id = db.Column(db.Integer, db.ForeignKey("band.id"), nullable=False)
   band = db.relationship("Band", back_populates=False)
   event_views: Mapped[list[EventView]] = db.relationship("EventView", back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
+  video_clicks: Mapped[list[VideoClick]] = db.relationship("VideoClick", back_populates="event", cascade="all, delete-orphan", passive_deletes=True)
   
   def __init__(self, band_name, band_type, tribute_band_name, genres, event_date, 
                start_time, end_time, cover_charge, other_info, facebook_handle,
