@@ -5,6 +5,7 @@ from scripts.models.event import Event
 from sqlalchemy.orm.attributes import flag_modified
 from datetime import datetime
 from scripts.date_ranges import get_date_range
+from scripts.validate_admin import validate_admin_key
 
 band_bp = Blueprint('band', __name__)
 
@@ -13,6 +14,37 @@ def get_bands_videos(band_id):
   band: Band = Band.query.filter(Band.id == band_id).first_or_404()
 
   return jsonify({"video_ids": band.youtube_ids}), 200
+
+@band_bp.route('/bands/merge', methods=['POST'])
+@validate_admin_key
+def merge_bands():
+  band_id_one = request.json['band_id_one']
+  band_id_two = request.json['band_id_two']
+  band_name = request.json['band_name']
+
+  band_1: Band = Band.query.filter_by(id=band_id_one).first_or_404()
+  band_2: Band = Band.query.filter_by(id=band_id_two).first_or_404()
+
+  if band_1.id == band_2.id:
+    return jsonify({"error": "Cannot merge the same band"}), 400
+  
+  if len(band_1.events) >= len(band_2.events):
+    events_to_move = band_2.events
+    for event in events_to_move:
+      event.band = band_1
+    db.session.commit()
+    db.session.delete(band_2)
+    band_1.band_name = band_name
+  else:
+    events_to_move = band_1.events
+    for event in events_to_move:
+      event.band = band_2
+    db.session.commit()
+    db.session.delete(band_1)
+    band_2.band_name = band_name
+  db.session.commit()
+
+  return jsonify({"message": "Bands merged successfully"}), 200
 
 # Returns a dictionary with the keys being all the bands names and the values including the band type, tribute band name, and genres.
 @band_bp.route('/bands', methods = ['GET'])
