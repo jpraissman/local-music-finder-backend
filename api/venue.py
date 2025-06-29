@@ -39,6 +39,20 @@ def merge_venues():
 
   return jsonify({"message": "Venues merged successfully"}), 200
 
+@venue_bp.route('/venue/<venue_id>/edit', methods = ['PUT'])
+@validate_admin_key
+def edit_venue_info(venue_id):
+  venue: Venue = Venue.query.filter_by(id=venue_id).first()
+  if not venue:
+    return jsonify({"error": "Venue not found"}), 404
+  
+  venue.facebook_url = request.json['facebook_url']
+  venue.instagram_url = request.json['instagram_url']
+  venue.website_url = request.json['website_url']
+  db.session.commit()
+
+  return jsonify({"status": "Success"}), 200
+
 # Returns a dictionary with the keys being all the venue names and the values including the address and the place_id
 @venue_bp.route('/venues', methods = ['GET'])
 def get_all_venues():

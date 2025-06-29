@@ -107,6 +107,20 @@ def get_band_details(band_id):
   }
   return jsonify(band_details)
 
+@band_bp.route('/band/<band_id>/edit', methods = ['PUT'])
+@validate_admin_key
+def edit_band_info(band_id):
+  band: Band = Band.query.filter_by(id=band_id).first()
+  if not band:
+    return jsonify({"error": "Band not found"}), 404
+  
+  band.facebook_url = request.json['facebook_url']
+  band.instagram_url = request.json['instagram_url']
+  band.website_url = request.json['website_url']
+  db.session.commit()
+
+  return jsonify({"status": "Success"}), 200
+
 @band_bp.route('/band/<band_id>/events', methods = ['GET'])
 def get_band_events(band_id):
   start_date, _ = get_date_range("Today")
