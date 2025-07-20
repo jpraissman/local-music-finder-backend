@@ -9,10 +9,6 @@ from flask_limiter import Limiter
 from flask_migrate import Migrate
 import sentry_sdk
 
-sentry_sdk.init(
-    dsn = os.environ.get('SENTRY_DSN'),
-)
-
 # Important server stuff
 app = Flask(__name__)
 database_url = os.environ.get('DATABASE_URL')
@@ -25,6 +21,11 @@ migrate = Migrate(app, db)
 CORS(app)
 executor = Executor(app)
 limiter = Limiter(app=app, key_func=lambda: "global", default_limits=["100 per minute"])
+
+if not app.config.get("TESTING"):
+  sentry_sdk.init(
+      dsn = os.environ.get('SENTRY_DSN'),
+  )
 
 # Get API Keys
 API_KEY = os.environ.get('API_KEY')
@@ -69,14 +70,16 @@ class RateLimitEmailHelper:
 # Custom 404 error handler
 @app.errorhandler(404)
 def not_found(error):
-    sentry_sdk.capture_exception(error)
+    if not app.config.get("TESTING"):
+      sentry_sdk.capture_exception(error)
 
     # Return an empty response
     return Response(status=200)
 
 @app.errorhandler(Exception)
 def handle_exception(e):
-  sentry_sdk.capture_exception(e)
+  if not app.config.get("TESTING"):
+    sentry_sdk.capture_exception(e)
 
   if app.debug:
     raise e
@@ -122,6 +125,10 @@ def reset_rate_limit_email():
   time.sleep(1200)
   RateLimitEmailHelper.email_sent = False
   print("Reset rate limit email")
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'ok'}), 200
 
 if __name__ == '__main__':
   app.run()
