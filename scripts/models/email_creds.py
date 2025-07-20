@@ -3,8 +3,7 @@ from scripts.date_helpers import get_eastern_datetime_now_str
 from cryptography.fernet import Fernet
 import os
 
-# Load encryption key from env (or generate & store securely)
-FERNET_KEY = os.environ["FERNET_KEY"]  # Must be 32 url-safe base64-encoded bytes
+FERNET_KEY = os.environ["FERNET_KEY"] 
 fernet = Fernet(FERNET_KEY)
 
 class EmailCreds(db.Model):
