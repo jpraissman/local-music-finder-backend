@@ -1,6 +1,6 @@
 name: Run tests
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   test:
@@ -23,6 +23,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_db
+      FERNET_KEY: ${{ secrets.FERNET_KEY }}
 
     steps:
       - uses: actions/checkout@v4
