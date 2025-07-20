@@ -7,7 +7,11 @@ import os, json, time, traceback
 from flask_executor import Executor
 from flask_limiter import Limiter
 from flask_migrate import Migrate
-import scripts.send_emails as EmailSender
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn = os.environ.get('SENTRY_DSN'),
+)
 
 # Important server stuff
 app = Flask(__name__)
@@ -34,6 +38,7 @@ from api.venue import venue_bp
 from api.band import band_bp
 from api.event_modify import event_modify_bp
 from api.user import user_bp
+import scripts.send_emails as EmailSender
 
 app.register_blueprint(event_bp)
 app.register_blueprint(query_bp)
@@ -55,6 +60,7 @@ from scripts.models.activity import Activity
 from scripts.models.event_view import EventView
 from scripts.models.bot_activity import BotActivity
 from scripts.models.video_click import VideoClick
+from scripts.models.email_creds import EmailCreds
 
 # Used to make helper send rate limit emails
 class RateLimitEmailHelper:
@@ -63,11 +69,18 @@ class RateLimitEmailHelper:
 # Custom 404 error handler
 @app.errorhandler(404)
 def not_found(error):
+    sentry_sdk.capture_exception(error)
+
     # Return an empty response
     return Response(status=200)
 
 @app.errorhandler(Exception)
 def handle_exception(e):
+  sentry_sdk.capture_exception(e)
+
+  if app.debug:
+    raise e
+  
   print("Handling Error")
 
   tb = traceback.format_exc()
