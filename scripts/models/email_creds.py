@@ -1,5 +1,4 @@
 from app import db
-from scripts.date_helpers import get_eastern_datetime_now_str
 from cryptography.fernet import Fernet
 import os
 
