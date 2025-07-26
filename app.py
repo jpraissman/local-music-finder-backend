@@ -70,8 +70,8 @@ class RateLimitEmailHelper:
 # Custom 404 error handler
 @app.errorhandler(404)
 def not_found(error):
-    if not app.config.get("TESTING"):
-      sentry_sdk.capture_exception(error)
+    # if not app.config.get("TESTING"):
+    #   sentry_sdk.capture_exception(error)
 
     # Return an empty response
     return Response(status=200)
