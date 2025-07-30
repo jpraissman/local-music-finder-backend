@@ -46,9 +46,9 @@ class Venue(db.Model):
       # Get county
       address_components = response.json()["results"][0]["address_components"]
       for component in address_components:
-        if component['types'][0] == 'administrative_area_level_2':
+        if len(component['types']) > 0 and component['types'][0] == 'administrative_area_level_2':
           self.county = component['long_name']
-        if component['types'][0] == 'locality':
+        if len(component['types']) > 0 and component['types'][0] == 'locality':
           self.town = component['long_name']
       
       # Get address
