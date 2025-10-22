@@ -108,12 +108,16 @@ def get_user_totals():
                 ),
                 "device": get_device_type(session.user_agent),
                 "referer": format_referer(session.referer),
-                "videos_clicked": len(session.clicked_videos),
-                "events_viewed": len(session.viewed_events),
-                "type": (
-                    "new" if session.user.sessions[0].id == session.id else "returning"
-                ),
-                "pages_visited": len(session.activities),
+                # "videos_clicked": len(session.clicked_videos),
+                # "events_viewed": len(session.viewed_events),
+                # "type": (
+                #     "new" if session.user.sessions[0].id == session.id else "returning"
+                # ),
+                # "pages_visited": len(session.activities),
+                "videos_clicked": 1,
+                "events_viewed": 1,
+                "type": "new",
+                "pages_visited": 1,
                 "venues_viewed": session.num_venues_viewded,
                 "bands_viewed": session.num_bands_viewed,
                 "start_time": session.start_time,
@@ -131,16 +135,16 @@ def get_user_totals():
             user_results[user_id]["duration"] += round(
                 (session.end_time - session.start_time).total_seconds() / 60, 2
             )
-            user_results[user_id]["videos_clicked"] += len(session.clicked_videos)
-            user_results[user_id]["events_viewed"] += len(session.viewed_events)
-            user_results[user_id]["pages_visited"] += len(session.activities)
+            # user_results[user_id]["videos_clicked"] += len(session.clicked_videos)
+            # user_results[user_id]["events_viewed"] += len(session.viewed_events)
+            # user_results[user_id]["pages_visited"] += len(session.activities)
             user_results[user_id]["venues_viewed"] += session.num_venues_viewded
             user_results[user_id]["bands_viewed"] += session.num_bands_viewed
-            if session.user.sessions[0].id == session.id:
-                user_results[user_id]["type"] = "new"
-                total_new_sessions += 1
-            else:
-                total_returning_sessions += 1
+            # if session.user.sessions[0].id == session.id:
+            #     user_results[user_id]["type"] = "new"
+            #     total_new_sessions += 1
+            # else:
+            #     total_returning_sessions += 1
             print("Finish elif statement: ", time_module.time() - start_time)
         print("Finished if statement: ", time_module.time() - start_time)
 
