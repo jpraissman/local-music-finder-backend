@@ -2,13 +2,14 @@ from flask import Blueprint, jsonify, request
 from scripts.models.user import User
 from scripts.models.session import Session
 from scripts.models.activity import Activity
+from scripts.models.video_click import VideoClick
 from app import db
 from scripts.user_helpers import get_user, is_bot
 from datetime import datetime, time
 from scripts.user_helpers import get_device_type, format_referer
-import math
 from scripts.validate_admin import validate_admin_key
-import time as time_module
+from sqlalchemy import func
+
 
 user_bp = Blueprint("user", __name__)
 
@@ -62,8 +63,6 @@ def get_sesssion_details(session_id):
 @user_bp.route("/users", methods=["GET"])
 @validate_admin_key
 def get_user_totals():
-    start_time = time_module.time()
-    print("Getting user totals... Time: ", start_time)
     from_date = request.args.get("from_date")
     to_date = request.args.get("to_date")
     to_date = datetime.combine(
@@ -77,21 +76,38 @@ def get_user_totals():
         Session.start_time >= from_date, Session.start_time <= to_date
     ).all()
 
-    print(
-        f"Processing {len(all_sessions)} sessions... Time elapsed (seconds): ",
-        time_module.time() - start_time,
+    session_ids = [s.id for s in all_sessions]
+    activity_counts = dict(
+        db.session.query(Activity.session_id, func.count(Activity.id))
+        .filter(Activity.session_id.in_(session_ids))
+        .group_by(Activity.session_id)
+        .all()
+    )
+    video_click_counts = dict(
+        db.session.query(VideoClick.session_id, func.count(VideoClick.id))
+        .filter(VideoClick.session_id.in_(session_ids))
+        .group_by(VideoClick.session_id)
+        .all()
+    )
+    first_sessions = dict(
+        db.session.query(
+            Session.user_id,
+            func.min(
+                Session.id
+            ),  # assuming smaller id = earlier; otherwise use start_time
+        )
+        .group_by(Session.user_id)
+        .all()
     )
 
     user_results = {}
     total_new_sessions = 0
     total_returning_sessions = 0
     for session in all_sessions:
-        # print(
-        #     f"Processing session {session.id} for user {session.user_id}... Time elapsed (seconds): ",
-        #     time_module.time() - start_time,
-        # )
         user_id = session.user_id
-        print("About to do if statement: ", time_module.time() - start_time)
+        activities_count = activity_counts.get(session.id, 0)
+        videos_count = video_click_counts.get(session.id, 0)
+
         if (
             user_id not in user_results
             and (include_admins == "true" or not session.user.is_admin)
@@ -100,7 +116,6 @@ def get_user_totals():
                 >= min_duration_seconds
             )
         ):
-            print("Inside if statement: ", time_module.time() - start_time)
             user_results[user_id] = {
                 "user_id": user_id,
                 "duration": round(
@@ -108,50 +123,40 @@ def get_user_totals():
                 ),
                 "device": get_device_type(session.user_agent),
                 "referer": format_referer(session.referer),
-                # "videos_clicked": len(session.clicked_videos),
+                "videos_clicked": videos_count,
                 # "events_viewed": len(session.viewed_events),
-                # "type": (
-                #     "new" if session.user.sessions[0].id == session.id else "returning"
-                # ),
-                # "pages_visited": len(session.activities),
-                "videos_clicked": 1,
-                "events_viewed": 1,
-                "type": "new",
-                "pages_visited": 1,
+                "events_viewed": 0,
+                "type": (
+                    "new"
+                    if first_sessions.get(session.user_id) == session.id
+                    else "returning"
+                ),
+                "pages_visited": activities_count,
                 "venues_viewed": session.num_venues_viewded,
                 "bands_viewed": session.num_bands_viewed,
                 "start_time": session.start_time,
             }
-            if session.user.sessions[0].id == session.id:
+            if first_sessions.get(session.user_id) == session.id:
                 total_new_sessions += 1
             else:
                 total_returning_sessions += 1
-            print("Finish if statement: ", time_module.time() - start_time)
         elif (include_admins == "true" or not session.user.is_admin) and (
             (session.end_time - session.start_time).total_seconds()
             > min_duration_seconds
         ):
-            print("Inside elif statement: ", time_module.time() - start_time)
             user_results[user_id]["duration"] += round(
                 (session.end_time - session.start_time).total_seconds() / 60, 2
             )
-            # user_results[user_id]["videos_clicked"] += len(session.clicked_videos)
+            user_results[user_id]["videos_clicked"] += videos_count
             # user_results[user_id]["events_viewed"] += len(session.viewed_events)
-            # user_results[user_id]["pages_visited"] += len(session.activities)
+            user_results[user_id]["pages_visited"] += activities_count
             user_results[user_id]["venues_viewed"] += session.num_venues_viewded
             user_results[user_id]["bands_viewed"] += session.num_bands_viewed
-            # if session.user.sessions[0].id == session.id:
-            #     user_results[user_id]["type"] = "new"
-            #     total_new_sessions += 1
-            # else:
-            #     total_returning_sessions += 1
-            print("Finish elif statement: ", time_module.time() - start_time)
-        print("Finished if statement: ", time_module.time() - start_time)
-
-    print(
-        "Finished processing users. Time elapsed (seconds): ",
-        time_module.time() - start_time,
-    )
+            if first_sessions.get(session.user_id) == session.id:
+                user_results[user_id]["type"] = "new"
+                total_new_sessions += 1
+            else:
+                total_returning_sessions += 1
 
     # Get totals
     totals = {
@@ -206,11 +211,6 @@ def get_user_totals():
             user["bands_viewed"] for user in user_results.values()
         ),
     }
-
-    print(
-        "Finished processing totals. Time elapsed (seconds): ",
-        time_module.time() - start_time,
-    )
 
     return jsonify({"users": user_results, "totals": totals}), 200
 
