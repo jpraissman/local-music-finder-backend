@@ -142,6 +142,7 @@ def get_user_totals():
             else:
                 total_returning_sessions += 1
             print("Finish elif statement: ", time_module.time() - start_time)
+        print("Finished if statement: ", time_module.time() - start_time)
 
     print(
         "Finished processing users. Time elapsed (seconds): ",
