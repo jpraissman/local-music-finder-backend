@@ -86,11 +86,12 @@ def get_user_totals():
     total_new_sessions = 0
     total_returning_sessions = 0
     for session in all_sessions:
-        print(
-            f"Processing session {session.id} for user {session.user_id}... Time elapsed (seconds): ",
-            time_module.time() - start_time,
-        )
+        # print(
+        #     f"Processing session {session.id} for user {session.user_id}... Time elapsed (seconds): ",
+        #     time_module.time() - start_time,
+        # )
         user_id = session.user_id
+        print("About to do if statement: ", time_module.time() - start_time)
         if (
             user_id not in user_results
             and (include_admins == "true" or not session.user.is_admin)
@@ -99,6 +100,7 @@ def get_user_totals():
                 >= min_duration_seconds
             )
         ):
+            print("Inside if statement: ", time_module.time() - start_time)
             user_results[user_id] = {
                 "user_id": user_id,
                 "duration": round(
@@ -120,10 +122,12 @@ def get_user_totals():
                 total_new_sessions += 1
             else:
                 total_returning_sessions += 1
+            print("Finish if statement: ", time_module.time() - start_time)
         elif (include_admins == "true" or not session.user.is_admin) and (
             (session.end_time - session.start_time).total_seconds()
             > min_duration_seconds
         ):
+            print("Inside elif statement: ", time_module.time() - start_time)
             user_results[user_id]["duration"] += round(
                 (session.end_time - session.start_time).total_seconds() / 60, 2
             )
@@ -137,6 +141,7 @@ def get_user_totals():
                 total_new_sessions += 1
             else:
                 total_returning_sessions += 1
+            print("Finish elif statement: ", time_module.time() - start_time)
 
     print(
         "Finished processing users. Time elapsed (seconds): ",
