@@ -8,7 +8,7 @@ from datetime import datetime, time
 from scripts.user_helpers import get_device_type, format_referer
 import math
 from scripts.validate_admin import validate_admin_key
-import time
+import time as time_module
 
 user_bp = Blueprint("user", __name__)
 
@@ -62,7 +62,7 @@ def get_sesssion_details(session_id):
 @user_bp.route("/users", methods=["GET"])
 @validate_admin_key
 def get_user_totals():
-    start_time = time.time()
+    start_time = time_module.time()
     print("Getting user totals... Time: ", start_time)
     from_date = request.args.get("from_date")
     to_date = request.args.get("to_date")
@@ -79,7 +79,7 @@ def get_user_totals():
 
     print(
         f"Processing {len(all_sessions)} sessions... Time elapsed (seconds): ",
-        time.time() - start_time,
+        time_module.time() - start_time,
     )
 
     user_results = {}
@@ -88,7 +88,7 @@ def get_user_totals():
     for session in all_sessions:
         print(
             f"Processing session {session.id} for user {session.user_id}... Time elapsed (seconds): ",
-            time.time() - start_time,
+            time_module.time() - start_time,
         )
         user_id = session.user_id
         if (
@@ -139,7 +139,8 @@ def get_user_totals():
                 total_returning_sessions += 1
 
     print(
-        "Finished processing users. Time elapsed (seconds): ", time.time() - start_time
+        "Finished processing users. Time elapsed (seconds): ",
+        time_module.time() - start_time,
     )
 
     # Get totals
@@ -197,7 +198,8 @@ def get_user_totals():
     }
 
     print(
-        "Finished processing totals. Time elapsed (seconds): ", time.time() - start_time
+        "Finished processing totals. Time elapsed (seconds): ",
+        time_module.time() - start_time,
     )
 
     return jsonify({"users": user_results, "totals": totals}), 200
